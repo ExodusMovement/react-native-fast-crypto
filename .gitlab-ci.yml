@@ -24,6 +24,7 @@ build:
       - ./.gitignore
       - ./.npmignore
       - ./CHANGELOG.md
+      - ./README.md
       - ./build-deps
       - ./index.js
       - ./package.json
