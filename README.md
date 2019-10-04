@@ -77,3 +77,24 @@ git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
 ```bash
 yarn build:native
 ```
+
+## tl;dr
+
+Setup (once)
+
+```bash
+sudo xcode-select --switch /Applications/Xcode.app
+sudo xcodebuild -license
+brew install autoconf automake cmake git libtool pkgconfig protobuf astyle
+open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
+```
+
+Build
+
+```bash
+rm -r react-native-fast-crypto
+git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
+cd react-native-fast-crypto && yarn build:native
+cd ios/Libraries && find . -type f -exec sha256sum {} \;
+cd ../android/jni/libs && find . -type f -exec sha256sum {} \;
+```
