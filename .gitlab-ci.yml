@@ -9,5 +9,23 @@ build:
     - cat shasums.txt
   artifacts:
     paths:
-      - .
+      - ./android
+      - ./ios
+      - ./native-libs/deps/classes
+      - ./native-libs/deps/recipes
+      - ./native-libs/deps/.gitignore
+      - ./native-libs/deps/Makefile
+      - ./native-libs/deps/documentation.md
+      - ./native-libs/deps/run.sh
+      - ./native-libs/src
+      - ./native-libs/.gitignore
+      - ./native-libs/Makefile
+      - ./.gitattributes
+      - ./.gitignore
+      - ./.npmignore
+      - ./CHANGELOG.md
+      - ./build-deps
+      - ./index.js
+      - ./package.json
+      - ./yarn.lock
     expire_in: 1 week
