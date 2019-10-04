@@ -1,0 +1,17 @@
+build:
+  image: node:12.9.1
+  tags:
+    - mac-runner
+  when: manual
+  script:
+    - ./build-deps
+    - shasum -a 256 ios/Libraries/* android/jni/libs/*/* > shasums.txt
+  artifacts:
+    when: always
+    paths:
+      - ./native-libs/deps/build/*/*.log
+      - ./native-libs/deps/build/*/*/*/*.log
+      - ./ios/Libraries
+      - ./android/jni/libs
+      - ./shasums.txt
+    expire_in: 1 week
