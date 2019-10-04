@@ -8,11 +8,6 @@ build:
     - shasum -a 256 ios/Libraries/* android/jni/libs/*/* > shasums.txt
     - cat shasums.txt
   artifacts:
-    when: always
     paths:
-      - ./native-libs/deps/build/*/*.log
-      - ./native-libs/deps/build/*/*/*/*.log
-      - ./ios/Libraries
-      - ./android/jni/libs
-      - ./shasums.txt
+      - .
     expire_in: 1 week
