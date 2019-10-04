@@ -28,4 +28,5 @@ build:
       - ./index.js
       - ./package.json
       - ./yarn.lock
+      - ./shasums.txt
     expire_in: 1 week
