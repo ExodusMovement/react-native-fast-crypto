@@ -6,6 +6,7 @@ build:
   script:
     - ./build-deps
     - shasum -a 256 ios/Libraries/* android/jni/libs/*/* > shasums.txt
+    - cat shasums.txt
   artifacts:
     when: always
     paths:
