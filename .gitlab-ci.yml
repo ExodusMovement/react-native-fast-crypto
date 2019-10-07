@@ -2,8 +2,8 @@ build:
   image: node:10.15.3
   tags:
     - mac-runner
-    - xcode_10-3
-    - osx_10-14
+    # - xcode_10-3
+    # - osx_10-14
   when: manual
   script:
     - ./build-deps
