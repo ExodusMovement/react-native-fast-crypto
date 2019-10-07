@@ -83,6 +83,7 @@ yarn build:native
 Setup (once)
 
 ```bash
+# macOS 10.14.6, Xcode 10.3
 sudo xcode-select --switch /Applications/Xcode.app
 sudo xcodebuild -license
 brew install autoconf automake cmake git libtool pkgconfig protobuf astyle
