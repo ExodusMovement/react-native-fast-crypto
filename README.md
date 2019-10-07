@@ -96,6 +96,5 @@ Build
 rm -r react-native-fast-crypto
 git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
 cd react-native-fast-crypto && yarn build:native
-cd ios/Libraries && find . -type f -exec sha256sum {} \;
-cd ../../android/jni/libs && find . -type f -exec sha256sum {} \;
+shasum -a 256 ios/Libraries/* android/jni/libs/*/* > shasums.txt
 ```
