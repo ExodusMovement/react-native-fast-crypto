@@ -75,7 +75,7 @@ git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
 1. Build binaries
 
 ```bash
-yarn build:native
+yarn build
 ```
 
 ## tl;dr
@@ -95,6 +95,6 @@ Build
 ```bash
 rm -r react-native-fast-crypto
 git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
-cd react-native-fast-crypto && yarn build:native
+cd react-native-fast-crypto && yarn build
 shasum -a 256 ios/Libraries/* android/jni/libs/*/* > shasums.txt
 ```
