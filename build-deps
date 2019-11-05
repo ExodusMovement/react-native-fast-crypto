@@ -58,6 +58,8 @@ done
 )
 
 if [[ "$NATIVE_TESTS" -eq "1" ]]; then
+    cd native-libs
+    make check V=1 T=1
     echo "Finished running tests."
     exit 0
 fi
