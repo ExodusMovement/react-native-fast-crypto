@@ -57,6 +57,11 @@ done
     make $targets $@
 )
 
+if [[ "$NATIVE_TESTS" -eq "1" ]]; then
+    echo "Finished running tests."
+    exit 0
+fi
+
 # Copy the results locally:
 if [ Darwin = $(uname -s) ]; then
     mkdir -m 0775 -p ios/Headers
