@@ -66,6 +66,8 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
             result = serial_bridge::encrypt_payment_id(strParams);
         } else if (method.compare("extract_utxos") == 0) {
             result = serial_bridge::extract_utxos(strParams);
+        } else if (method.compare("do_http_request") == 0) {
+            result = serial_bridge::do_http_request(strParams);
         } else if (method.compare("sleep") == 0) {
             boost::this_thread::sleep_for(boost::chrono::milliseconds(15 * 1000));
             result = "{}";
