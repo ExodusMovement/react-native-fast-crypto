@@ -11,7 +11,9 @@ CXXFLAGS += -D_GNU_SOURCE -DDEBUG -g -Wall -fPIC -std=c++11
 LIBS := -lmymonerocorecpp \
 	-lboost_thread \
 	-lboost_system \
-	-lm
+	-lm \
+	-lssl \
+	-lcrypto
 
 # Do not use -lpthread on Android:
 ifneq (,$(findstring android,$(CC)))

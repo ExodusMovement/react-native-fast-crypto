@@ -1,0 +1,18 @@
+inherit lib
+
+version="056057782325134b76d1931c48f2c7e6595d7ef4"
+source="https://www.openssl.org/source/openssl-1.0.2o.tar.gz"
+
+build() {
+    cd openssl-1.0.2o
+
+    # TODO: Configure per platform
+    ./Configure darwin64-x86_64-cc shared
+    make
+
+    cp -f libssl.a $install_dir/lib/
+    cp -f libcrypto.a $install_dir/lib/
+
+}
+
+lib="lib/libssl.a lib/libcrypto.a"
