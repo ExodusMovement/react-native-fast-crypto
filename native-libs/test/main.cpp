@@ -4,7 +4,7 @@
 #include <string_tools.h>
 
 // Files to be copied.
-// epee/include/storages - might be not needed once refactored.
+// epee/include/storages
 // epee/include/file_io_utils.h
 
 // ObjC
