@@ -23,24 +23,9 @@
     size_t length = 0;
     const char *m_body = create_blocks_request(1971000, &length);
 
-    char *updated_body = malloc(length);
-    memcpy(updated_body, m_body, length);
-
-    // For some reason first 10 bytes are random bytes.
-    updated_body[0] = 0x01;
-    updated_body[1] = 0x11;
-    updated_body[2] = 0x01;
-    updated_body[3] = 0x01;
-    updated_body[4] = 0x01;
-    updated_body[5] = 0x01;
-    updated_body[6] = 0x02;
-    updated_body[7] = 0x01;
-    updated_body[8] = 0x01;
-    updated_body[9] = 0x14;
-
     NSURL *url = [NSURL URLWithString:addr];
-    NSData *binaryData = [NSData dataWithBytes:updated_body length:length];
-    free(updated_body);
+    NSData *binaryData = [NSData dataWithBytes:m_body length:length];
+    free((void *)m_body);
 
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     [urlRequest setHTTPMethod:@"POST"];
