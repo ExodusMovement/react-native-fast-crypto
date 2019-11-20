@@ -19,21 +19,37 @@
                                  :(RCTPromiseResolveBlock) resolve
                                  :(RCTPromiseRejectBlock) reject {
     NSString *addr = @"https://xmr.exodus-prod.io/get_blocks.bin";
-    NSString *body = @"AREBAQEBAgEBEAlibG9ja19pZHMKgEGAFbua6YKhl12n15J3wnBXJ6VolLoPskatqrsfRjLjDHN0YXJ0X2hlaWdodAUU7x0AAAAAAAVwcnVuZQsBC25vX21pbmVyX3R4CwA=";
+
+    size_t length = 0;
+    const char *m_body = create_blocks_request(1971000, &length);
+
+    char *updated_body = malloc(length);
+    memcpy(updated_body, m_body, length);
+
+    // For some reason first 10 bytes are random bytes.
+    updated_body[0] = 0x01;
+    updated_body[1] = 0x11;
+    updated_body[2] = 0x01;
+    updated_body[3] = 0x01;
+    updated_body[4] = 0x01;
+    updated_body[5] = 0x01;
+    updated_body[6] = 0x02;
+    updated_body[7] = 0x01;
+    updated_body[8] = 0x01;
+    updated_body[9] = 0x14;
 
     NSURL *url = [NSURL URLWithString:addr];
-    NSData *binaryData = [[NSData alloc] initWithBase64EncodedString:body options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    NSData *binaryData = [NSData dataWithBytes:updated_body length:length];
+    free(updated_body);
 
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     [urlRequest setHTTPMethod:@"POST"];
     [urlRequest setHTTPBody:binaryData];
 
-
     NSURLSession *session = [NSURLSession sharedSession];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-
-        resolve([NSString stringWithFormat:@"Content-Length: %lu", data.length]);
+        resolve([NSString stringWithFormat:@"Content-Length: %lu", (unsigned long) data.length]);
     }];
     [task resume];
 }

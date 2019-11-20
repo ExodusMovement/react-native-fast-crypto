@@ -44,6 +44,8 @@
 extern "C" {
 #endif
 
+const char *create_blocks_request(int height, size_t *length);
+
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult);
 
 #ifdef __cplusplus

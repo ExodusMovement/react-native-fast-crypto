@@ -14,6 +14,10 @@
 #include <boost/chrono.hpp>
 #include <boost/thread/thread.hpp>
 
+const char *create_blocks_request(int height, size_t *length) {
+    return serial_bridge::create_blocks_request(height, length);
+}
+
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult) {
     std::string strParams = szJsonParams;
     std::string method = szMethod;

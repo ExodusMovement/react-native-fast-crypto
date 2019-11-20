@@ -14,9 +14,14 @@
 
 
 int main() {
-    std::string m_body = serial_bridge::create_blocks_request(100);
+    size_t length = 0;
+    const char *body = serial_bridge::create_blocks_request(100, &length);
 
-    std::cout << m_body << std::endl;
+    for (size_t i = 0; i < length; i++) {
+        std::cout << body[i];
+    }
+
+    std::cout << std::endl;
 
     return 0;
 }
