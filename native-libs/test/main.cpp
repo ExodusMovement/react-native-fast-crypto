@@ -62,7 +62,7 @@ void test_decode() {
             bool tx_parsed = cryptonote::parse_and_validate_tx_from_blob(tx_entry.blob, tx) || cryptonote::parse_and_validate_tx_base_from_blob(tx_entry.blob, tx);
             if (!tx_parsed) continue;
 
-            std::cout << tx.pruned ? "Parsed pruned transaction\n" : "Parsed transaction\n";
+            std::cout << (tx.pruned ? "Parsed pruned transaction\n" : "Parsed transaction\n");
 
             std::cout << obj_to_json_str(tx) << std::endl;
 
