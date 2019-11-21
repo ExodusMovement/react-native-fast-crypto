@@ -34,7 +34,8 @@
     NSURLSession *session = [NSURLSession sharedSession];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-        resolve([NSString stringWithFormat:@"Content-Length: %lu", (unsigned long) data.length]);
+        int height = extract_utxos_from_blocks_response(data.bytes, data.length);
+        resolve([NSString stringWithFormat:@"Latest height: %d", height]);
     }];
     [task resume];
 }

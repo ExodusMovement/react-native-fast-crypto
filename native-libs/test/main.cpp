@@ -41,14 +41,10 @@ void test_decode() {
     char *input = new char[size];
     in.read(input, size);
 
-    std::string m_body(input, size);
+    int current_height = serial_bridge::extract_utxos_from_blocks_response(input, size);
+    std::cout << "Current height: " << current_height << '\n';
+
     delete[] input;
-
-    cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response resp;
-    epee::serialization::load_t_from_binary(resp, m_body);
-
-    std::cout << "Start height: " << resp.start_height << '\n';
-    std::cout << "Current height: " << resp.current_height << '\n';
 }
 
 int main() {
