@@ -58,17 +58,20 @@ void test_decode() {
         int height = boost::get<cryptonote::txin_gen>(gen_tx).height;
         std::cout << "Height: " << height << '\n';
 
-        for (auto &tx_entry : block_entry.txs) {
+        for (size_t n = 0; n < block_entry.txs.size(); n++) {
+            auto tx_entry = block_entry.txs[n];
+
             bool tx_parsed = cryptonote::parse_and_validate_tx_from_blob(tx_entry.blob, tx) || cryptonote::parse_and_validate_tx_base_from_blob(tx_entry.blob, tx);
             if (!tx_parsed) continue;
 
-            std::cout << (tx.pruned ? "Parsed pruned transaction\n" : "Parsed transaction\n");
-
-            std::cout << obj_to_json_str(tx) << std::endl;
-
             std::vector<cryptonote::tx_extra_field> fields;
             bool extra_parsed = cryptonote::parse_tx_extra(tx.extra, fields);
-            if (extra_parsed) print_extra_fields(fields);
+            if (!extra_parsed) continue;
+
+            serial_bridge::Transaction bridge_tx;
+            bridge_tx.id = epee::string_tools::pod_to_hex(b.tx_hashes[n]);
+            bridge_tx.pub = get_extra_pub_key(fields);
+            bridge_tx.version = tx.version;
         }
     }
 }
