@@ -116,4 +116,10 @@ set_target_properties(
     boost_thread PROPERTIES IMPORTED_LOCATION
     ${boost_DIR}/lib/libboost_thread.a
 )
+
+add_library(boost_regex STATIC IMPORTED)
+set_target_properties(
+    boost_regex PROPERTIES IMPORTED_LOCATION
+    ${boost_DIR}/lib/libboost_regex.a
+)
 add_library(mymonerocorecpp STATIC ${SRC_FILES})
