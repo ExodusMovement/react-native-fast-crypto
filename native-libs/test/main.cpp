@@ -58,8 +58,8 @@ void test_decode() {
         int height = boost::get<cryptonote::txin_gen>(gen_tx).height;
         std::cout << "Height: " << height << '\n';
 
-        for (size_t n = 0; n < block_entry.txs.size(); n++) {
-            auto tx_entry = block_entry.txs[n];
+        for (size_t i = 0; i < block_entry.txs.size(); i++) {
+            auto tx_entry = block_entry.txs[i];
 
             bool tx_parsed = cryptonote::parse_and_validate_tx_from_blob(tx_entry.blob, tx) || cryptonote::parse_and_validate_tx_base_from_blob(tx_entry.blob, tx);
             if (!tx_parsed) continue;
@@ -69,9 +69,11 @@ void test_decode() {
             if (!extra_parsed) continue;
 
             serial_bridge::Transaction bridge_tx;
-            bridge_tx.id = epee::string_tools::pod_to_hex(b.tx_hashes[n]);
+            bridge_tx.id = epee::string_tools::pod_to_hex(b.tx_hashes[i]);
             bridge_tx.pub = get_extra_pub_key(fields);
             bridge_tx.version = tx.version;
+            bridge_tx.rv = tx.rct_signatures;
+            bridge_tx.outputs = get_utxos(tx);
         }
     }
 }
