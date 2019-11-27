@@ -18,10 +18,17 @@
                                  :(NSString*) params
                                  :(RCTPromiseResolveBlock) resolve
                                  :(RCTPromiseRejectBlock) reject {
-    NSString *addr = @"https://xmr.exodus-prod.io/get_blocks.bin";
+
+    NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *jsonError;
+    NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
+
+    NSString *addr = jsonParams[@"url"];
+    NSString *startHeight = jsonParams[@"start_height"];
+
 
     size_t length = 0;
-    const char *m_body = create_blocks_request(1971000, &length);
+    const char *m_body = create_blocks_request([startHeight intValue], &length);
 
     NSURL *url = [NSURL URLWithString:addr];
     NSData *binaryData = [NSData dataWithBytes:m_body length:length];
