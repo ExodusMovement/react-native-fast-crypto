@@ -17,9 +17,9 @@
 - `vout`
 - `amount`
 - `keyImage`
+- `txPub`
 - `pub`
 - `rct`
-- `outPub`
 - `globalIndex`
 - `blockHeight`
 

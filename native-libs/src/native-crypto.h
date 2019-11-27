@@ -45,7 +45,7 @@ extern "C" {
 #endif
 
 const char *create_blocks_request(int height, size_t *length);
-int extract_utxos_from_blocks_response(const char *buffer, size_t length);
+void extract_utxos_from_blocks_response(const char *buffer, size_t length, const char *szJsonParams, char **pszResult);
 
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult);
 

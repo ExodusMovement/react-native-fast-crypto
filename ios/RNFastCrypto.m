@@ -34,8 +34,13 @@
     NSURLSession *session = [NSURLSession sharedSession];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-        int height = extract_utxos_from_blocks_response(data.bytes, data.length);
-        resolve([NSString stringWithFormat:@"Latest height: %d", height]);
+        char *pszResult = NULL;
+
+        extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+
+        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+        free(pszResult);
+        resolve(jsonResult);
     }];
     [task resume];
 }

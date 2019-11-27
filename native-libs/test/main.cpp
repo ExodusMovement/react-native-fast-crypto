@@ -1,12 +1,14 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <cstdlib>
 #include <serial_bridge_index.hpp>
 #include <storages/portable_storage_template_helper.h>
 #include <cryptonote_basic/cryptonote_format_utils.h>
-#include "helpers.h"
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 void test_encode() {
     size_t length = 0;
@@ -35,47 +37,12 @@ void test_decode() {
     in.read(input, size);
 
     std::string m_body(input, size);
+    std::string params = "REPLACE_ME";
+
+    auto resp = serial_bridge::extract_data_from_blocks_response_str(input, size, params);
+    std::cout << resp << '\n';
+
     delete[] input;
-
-    cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response resp;
-    epee::serialization::load_t_from_binary(resp, m_body);
-
-    auto blocks = resp.blocks;
-
-    cryptonote::block b;
-    cryptonote::transaction tx;
-    for (auto &block_entry : resp.blocks) {
-        crypto::hash block_hash;
-        if (!parse_and_validate_block_from_blob(block_entry.block, b, block_hash)) {
-            continue;
-        }
-
-        auto gen_tx = b.miner_tx.vin[0];
-        if (gen_tx.type() != typeid(cryptonote::txin_gen)) {
-            continue;
-        }
-
-        int height = boost::get<cryptonote::txin_gen>(gen_tx).height;
-        std::cout << "Height: " << height << '\n';
-
-        for (size_t i = 0; i < block_entry.txs.size(); i++) {
-            auto tx_entry = block_entry.txs[i];
-
-            bool tx_parsed = cryptonote::parse_and_validate_tx_from_blob(tx_entry.blob, tx) || cryptonote::parse_and_validate_tx_base_from_blob(tx_entry.blob, tx);
-            if (!tx_parsed) continue;
-
-            std::vector<cryptonote::tx_extra_field> fields;
-            bool extra_parsed = cryptonote::parse_tx_extra(tx.extra, fields);
-            if (!extra_parsed) continue;
-
-            serial_bridge::Transaction bridge_tx;
-            bridge_tx.id = epee::string_tools::pod_to_hex(b.tx_hashes[i]);
-            bridge_tx.pub = get_extra_pub_key(fields);
-            bridge_tx.version = tx.version;
-            bridge_tx.rv = tx.rct_signatures;
-            bridge_tx.outputs = get_utxos(tx);
-        }
-    }
 }
 
 int main() {

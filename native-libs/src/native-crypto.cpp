@@ -18,8 +18,13 @@ const char *create_blocks_request(int height, size_t *length) {
     return serial_bridge::create_blocks_request(height, length);
 }
 
-int extract_utxos_from_blocks_response(const char *buffer, size_t length) {
-    return serial_bridge::extract_utxos_from_blocks_response(buffer, length);
+void extract_utxos_from_blocks_response(const char *buffer, size_t length, const char *szJsonParams, char **pszResult) {
+    std::string strParams = szJsonParams;
+    std::string result = serial_bridge::extract_data_from_blocks_response_str(buffer, length, strParams);
+
+    int size = result.length() + 1;
+    *pszResult = (char *) malloc(sizeof(char) * size);
+    memcpy(*pszResult, result.c_str(), result.length() + 1);
 }
 
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult) {
