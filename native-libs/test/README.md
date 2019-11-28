@@ -25,4 +25,34 @@
 
 ### Needed to be returned for all txs
 
-- `inputs` -`tx.prefix.inputs`
+#### Input format
+
+```json
+[
+  {
+    "i": "txId",
+    "t": "timestamp",
+    "m": "img",
+    "n": "nonce",
+    "f": "fee"
+  }
+]
+```
+
+### Pruned block format
+
+```json
+[
+  {
+    "i": "id",
+    "t": "timestamp",
+    "m": [
+      {
+        "i": "global_index",
+        "p": "public_key",
+        "r": "rct"
+      }
+    ]
+  }
+]
+```
