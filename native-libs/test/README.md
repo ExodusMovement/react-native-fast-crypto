@@ -46,7 +46,7 @@ Note: Only add found outputs. Only add inputs that match globalKeyImages. Skip t
         {
           "vout": "vout number",
           "amount": "amount of output",
-          "image": "key image of the output",
+          "key_image": "key image of the output",
           "pub": "output public key",
           "rv": "output rct",
           "global_index": "output global index"
