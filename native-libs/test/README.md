@@ -25,19 +25,36 @@
 
 ### Needed to be returned for all txs
 
-#### Input format
+### Output format
+
+Note: Only add found outputs. Only add inputs that match globalKeyImages. Skip transactions with 0 ins and outs.
 
 ```json
-[
-  {
-    "i": "txId",
-    "h": "blockHeight",
-    "t": "timestamp",
-    "m": "img",
-    "n": "nonce",
-    "f": "fee"
-  }
-]
+{
+  "current_height": "21",
+  "txs": [
+    {
+      "id": "transaction id",
+      "timestamp": "timestamp",
+      "height": "block height",
+      "pub": "transaction pub",
+      "pid": "payment id",
+      "epid": "encrypted payment id",
+      "fee": "transaction fee",
+      "inputs": ["key image of the input"],
+      "utxos": [
+        {
+          "vout": "vout number",
+          "amount": "amount of output",
+          "image": "key image of the output",
+          "pub": "output public key",
+          "rv": "output rct",
+          "global_index": "output global index"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 ### Pruned block format
