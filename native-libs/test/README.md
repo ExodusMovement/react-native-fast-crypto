@@ -31,6 +31,7 @@
 [
   {
     "i": "txId",
+    "h": "blockHeight",
     "t": "timestamp",
     "m": "img",
     "n": "nonce",
