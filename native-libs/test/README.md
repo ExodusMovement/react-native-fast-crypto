@@ -56,21 +56,3 @@ Note: Only add found outputs. Only add inputs that match globalKeyImages. Skip t
   ]
 }
 ```
-
-### Pruned block format
-
-```json
-[
-  {
-    "i": "id",
-    "t": "timestamp",
-    "m": [
-      {
-        "i": "global_index",
-        "p": "public_key",
-        "r": "rct"
-      }
-    ]
-  }
-]
-```
