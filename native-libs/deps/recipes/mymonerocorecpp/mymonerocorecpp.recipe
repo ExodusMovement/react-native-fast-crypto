@@ -34,7 +34,6 @@ build() {
         $install_dir/include/fnv1.h \
         $install_dir/include/hex.h \
         $install_dir/include/include_base_utils.h \
-        $install_dir/include/int-util.h \
         $install_dir/include/memwipe.h \
         $install_dir/include/misc_language.h \
         $install_dir/include/misc_log_ex.h \
@@ -91,7 +90,6 @@ build() {
     cp -f contrib/monero-core-custom/epee/include/fnv1.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/hex.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/include_base_utils.h $install_dir/include/
-    cp -f contrib/monero-core-custom/epee/include/int-util.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/memwipe.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/misc_language.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/misc_log_ex.h $install_dir/include/
