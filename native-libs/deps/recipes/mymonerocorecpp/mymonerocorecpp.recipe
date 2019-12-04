@@ -30,7 +30,6 @@ build() {
         $install_dir/include/serialization \
         $install_dir/include/sodium \
         $install_dir/include/storages \
-        $install_dir/include/file_io_utils.h \
         $install_dir/include/fnv1.h \
         $install_dir/include/hex.h \
         $install_dir/include/include_base_utils.h \
@@ -86,7 +85,6 @@ build() {
     # Copy epee files
     cp -f contrib/monero-core-custom/epee/include/serialization/* $install_dir/include/serialization
     cp -R contrib/monero-core-custom/epee/include/storages $install_dir/include
-    cp -f contrib/monero-core-custom/epee/include/file_io_utils.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/fnv1.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/hex.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/include_base_utils.h $install_dir/include/
