@@ -41,6 +41,11 @@
     NSURLSession *session = [NSURLSession sharedSession];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            resolve(@"{\"err_msg\":\"Network request failed\"}");
+            return;
+        }
+
         char *pszResult = NULL;
 
         extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
