@@ -10,7 +10,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
 
-import java.io.InputStream;
+import java.io.DataInputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -57,7 +57,6 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
                         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                         connection.setRequestMethod("POST");
                         connection.setRequestProperty("Content-Type", "application/octet-stream");
-                        connection.setDoInput(true);
                         connection.setDoOutput(true);
 
                         OutputStream outputStream = connection.getOutputStream();
@@ -71,10 +70,10 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
                         String contentLength = connection.getHeaderField("Content-Length");
                         int responseLength = Integer.parseInt(contentLength);
 
-                        InputStream inputStream = connection.getInputStream();
+                        DataInputStream dataInputStream = new DataInputStream(connection.getInputStream());
 
                         byte[] bytes = new byte[responseLength];
-                        inputStream.read(bytes, 0, responseLength);
+                        dataInputStream.readFully(bytes);
 
                         ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
                         responseBuffer.put(bytes, 0, responseLength);
