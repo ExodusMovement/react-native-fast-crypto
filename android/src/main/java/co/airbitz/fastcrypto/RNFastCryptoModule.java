@@ -87,11 +87,11 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
                         String out = extractUtxosFromBlocksResponse(responseBuffer, jsonParams);
 
                         promise.resolve(out);
-                        return;
-                    } catch(Exception ex) {
-                        promise.resolve(ex.toString());
-                        return;
+                    } catch (Exception e) {
+                        promise.reject("Err", e);
                     }
+
+                    return;
                 }
 
                 try {
