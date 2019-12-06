@@ -65,28 +65,27 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
                         connection.setRequestProperty("Content-Type", "application/octet-stream");
                         connection.setDoOutput(true);
 
-                        OutputStream outputStream = connection.getOutputStream();
-                        for (int i = 0; i < requestLength; i++) {
-                            outputStream.write(requestBuffer.get(i));
+                        try (OutputStream outputStream = connection.getOutputStream()) {
+                            for (int i = 0; i < requestLength; i++) {
+                                outputStream.write(requestBuffer.get(i));
+                            }
                         }
 
-                        outputStream.close();
                         connection.connect();
 
                         String contentLength = connection.getHeaderField("Content-Length");
                         int responseLength = Integer.parseInt(contentLength);
 
-                        DataInputStream dataInputStream = new DataInputStream(connection.getInputStream());
+                        try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
+                            byte[] bytes = new byte[responseLength];
+                            dataInputStream.readFully(bytes);
 
-                        byte[] bytes = new byte[responseLength];
-                        dataInputStream.readFully(bytes);
+                            ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
+                            responseBuffer.put(bytes, 0, responseLength);
 
-                        ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
-                        responseBuffer.put(bytes, 0, responseLength);
-
-                        String out = extractUtxosFromBlocksResponse(responseBuffer, jsonParams);
-
-                        promise.resolve(out);
+                            String out = extractUtxosFromBlocksResponse(responseBuffer, jsonParams);
+                            promise.resolve(out);
+                        }
                     } catch (Exception e) {
                         promise.reject("Err", e);
                     }
