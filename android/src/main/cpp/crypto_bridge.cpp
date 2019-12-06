@@ -37,9 +37,9 @@ extern "C" {
 #include <string.h>
 
 JNIEXPORT jint JNICALL
-Java_co_airbitz_fastcrypto_RNFastCryptoModule_moneroCoreCreateRequest(JNIEnv *env, jobject thiz, jobject buf) {
+Java_co_airbitz_fastcrypto_RNFastCryptoModule_moneroCoreCreateRequest(JNIEnv *env, jobject thiz, jobject buf, jint height) {
     size_t length = 0;
-    const char *m_body = create_blocks_request(1982000, &length);
+    const char *m_body = create_blocks_request(height, &length);
 
     char *data = (char *) env->GetDirectBufferAddress(buf);
     memcpy(data, m_body, length);
