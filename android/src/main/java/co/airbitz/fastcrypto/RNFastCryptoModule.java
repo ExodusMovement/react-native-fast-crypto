@@ -2,6 +2,7 @@
 package co.airbitz.fastcrypto;
 
 import android.os.AsyncTask;
+import android.os.Build;
 import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
@@ -9,6 +10,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
+
 
 import org.json.JSONObject;
 
@@ -26,6 +28,18 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
         System.loadLibrary("nativecrypto");
         System.loadLibrary("crypto_bridge"); //this loads the library when the class is loaded
     }
+
+    private static final String USER_AGENT;
+
+    static {
+        String applicationName = BuildConfig.FLAVOR;
+        String version = BuildConfig.VERSION_NAME;
+        // modeled after User-Agent on ios: exodus/1.13.0 CFNetwork/978.0.7 Darwin/18.6.0
+        USER_AGENT = (applicationName + "/" + version + " " + Build.VERSION.SDK_INT)
+                // strip off all non-ASCII characters (just in case)
+                .replaceAll("[^\\x00-\\x7F]", "");
+    }
+
     public native String moneroCoreJNI(String method, String jsonParams);
     public native int moneroCoreCreateRequest(ByteBuffer requestBuffer, int height);
     public native String extractUtxosFromBlocksResponse(ByteBuffer buffer, String jsonParams);
@@ -63,6 +77,7 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
                         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                         connection.setRequestMethod("POST");
                         connection.setRequestProperty("Content-Type", "application/octet-stream");
+                        connection.setRequestProperty("User-Agent", USER_AGENT);
                         connection.setDoOutput(true);
 
                         try (OutputStream outputStream = connection.getOutputStream()) {
