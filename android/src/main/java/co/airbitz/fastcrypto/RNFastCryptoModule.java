@@ -78,6 +78,8 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
                         connection.setRequestMethod("POST");
                         connection.setRequestProperty("Content-Type", "application/octet-stream");
                         connection.setRequestProperty("User-Agent", USER_AGENT);
+                        connection.setConnectTimeout(10000);
+                        connection.setReadTimeout(4 * 60 * 1000);
                         connection.setDoOutput(true);
 
                         try (OutputStream outputStream = connection.getOutputStream()) {
