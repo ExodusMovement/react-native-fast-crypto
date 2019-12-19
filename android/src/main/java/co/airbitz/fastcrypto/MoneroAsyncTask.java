@@ -1,7 +1,9 @@
 package co.airbitz.fastcrypto;
 
 import android.os.Build;
+import android.util.Log;
 
+//import com.facebook.react.BuildConfig;
 import com.facebook.react.bridge.Promise;
 
 import org.json.JSONObject;
@@ -13,29 +15,24 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 
 public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
-    private static final String USER_AGENT;
 
     static {
 
         //this loads the library when the class is loaded
         System.loadLibrary("nativecrypto");
         System.loadLibrary("crypto_bridge"); //this loads the library when the class is loaded
-
-        String applicationName = BuildConfig.FLAVOR;
-        String version = BuildConfig.VERSION_NAME;
-        // modeled after User-Agent on ios: exodus/1.13.0 CFNetwork/978.0.7 Darwin/18.6.0
-        USER_AGENT = (applicationName + "/" + version + " Android/" + Build.VERSION.SDK_INT)
-                // strip off all non-ASCII characters (just in case)
-                .replaceAll("[^\\x00-\\x7F]", "");
     }
 
 
-    private final Promise promise;
     private final String method;
     private final String jsonParams;
-    public MoneroAsyncTask(String method, String jsonParams, Promise promise) {
+    private final String userAgent;
+    private final Promise promise;
+
+    public MoneroAsyncTask(String method, String jsonParams, String userAgent, Promise promise) {
         this.method = method;
         this.jsonParams = jsonParams;
+        this.userAgent = userAgent;
         this.promise = promise;
     }
 
@@ -56,7 +53,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/octet-stream");
-                connection.setRequestProperty("User-Agent", USER_AGENT);
+                connection.setRequestProperty("User-Agent", userAgent);
                 connection.setConnectTimeout(10000);
                 connection.setReadTimeout(4 * 60 * 1000);
                 connection.setDoOutput(true);
@@ -90,4 +87,3 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         return null;
     }
 };
-
