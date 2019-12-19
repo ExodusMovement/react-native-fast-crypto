@@ -2,7 +2,6 @@ package co.airbitz.fastcrypto;
 
 import android.os.Build;
 
-import com.facebook.react.BuildConfig;
 import com.facebook.react.bridge.Promise;
 
 import org.json.JSONObject;
