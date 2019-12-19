@@ -11,9 +11,15 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ViewManager;
 import com.facebook.react.bridge.JavaScriptModule;
 public class RNFastCryptoPackage implements ReactPackage {
+    private final String userAgent;
+
+    public RNFastCryptoPackage(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-      return Arrays.<NativeModule>asList(new RNFastCryptoModule(reactContext));
+      return Arrays.<NativeModule>asList(new RNFastCryptoModule(reactContext, userAgent));
     }
 
     public List<Class<? extends JavaScriptModule>> createJSModules() {

@@ -11,10 +11,12 @@ import com.facebook.react.bridge.ReactMethod;
 public class RNFastCryptoModule extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
+    private final String userAgent;
 
-    public RNFastCryptoModule(ReactApplicationContext reactContext) {
+    public RNFastCryptoModule(ReactApplicationContext reactContext, String userAgent) {
         super(reactContext);
         this.reactContext = reactContext;
+        this.userAgent = userAgent;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
             final String method,
             final String jsonParams,
             final Promise promise) {
-        AsyncTask task = new MoneroAsyncTask(method, jsonParams, promise);
+        AsyncTask task = new MoneroAsyncTask(method, jsonParams, userAgent, promise);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
     }
 }
