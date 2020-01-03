@@ -49,6 +49,8 @@ void extract_utxos_from_blocks_response(const char *buffer, size_t length, const
 
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult);
 
+void fast_crypto_keygen(const char *szMethod, const char *szJsonParams, char **pszResult);
+
 #ifdef __cplusplus
 }
 #endif

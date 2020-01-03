@@ -5,6 +5,7 @@
  * See the LICENSE file for more information.
  */
 
+#include "keygen.h"
 #include "native-crypto.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,6 +89,26 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
         }
     } catch (...) {
         result = "{\"err_msg\":\"mymonero-core-cpp threw an exception\"}";
+    }
+    int size = result.length() + 1;
+    *pszResult = (char *) malloc(sizeof(char) * size);
+    memcpy(*pszResult, result.c_str(), result.length() + 1);
+}
+
+void fast_crypto_keygen(const char *szMethod, const char *szJsonParams, char **pszResult) {
+    std::string strParams = szJsonParams;
+    std::string method = szMethod;
+    std::string result;
+
+    try {
+        if (method.compare("keygen_btc_like__derive") == 0) {
+            result = fast_crypto_derive(strParams);
+        } else {
+            *pszResult = NULL;
+            return;
+        }
+    } catch (...) {
+        result = "{\"err_msg\":\"keygen-cpp threw an exception\"}";
     }
     int size = result.length() + 1;
     *pszResult = (char *) malloc(sizeof(char) * size);

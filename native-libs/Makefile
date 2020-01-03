@@ -3,7 +3,7 @@
 # Build settings:
 WORK_DIR ?= build
 INSTALL_PATH ?= /usr/local
-PREFIX ?= deps/build/prefix
+PREFIX = deps/build/prefix
 
 # Compiler options:
 CFLAGS   += -D_GNU_SOURCE -DDEBUG -g -Wall -fPIC -std=c99
@@ -12,6 +12,7 @@ LIBS := -lmymonerocorecpp \
 	-lboost_thread \
 	-lboost_system \
 	-lboost_regex \
+	-lsecp256k1 \
 	-lm
 
 # Do not use -lpthread on Android:
@@ -25,12 +26,13 @@ endif
 T ?= 0
 ifeq ($T, 1)
 	CXXFLAGS += -I$(PREFIX)/native/include
+	CXXFLAGS += -Isrc
 	LDFLAGS += -L$(PREFIX)/native/lib
 endif
 
 # Source files:
-abc_sources = $(wildcard src/*.cpp)
-test_sources = $(wildcard test/*.cpp)
+abc_sources = $(wildcard src/*.cpp) $(wildcard src/crypto/*.cpp) $(wildcard src/compat/*.cpp)
+test_sources = $(wildcard test/*.cpp) $(wildcard test/crypto/*.cpp) $(wildcard test/compat/*.cpp)
 
 # Objects:
 abc_objects = $(addprefix $(WORK_DIR)/, $(addsuffix .o, $(basename $(abc_sources))))

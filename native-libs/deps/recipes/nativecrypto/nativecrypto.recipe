@@ -1,4 +1,4 @@
-depends="mymonerocorecpp"
+depends=" libsecp256k1 mymonerocorecpp bitcoin-crypto"
 inherit lib
 
 build() {

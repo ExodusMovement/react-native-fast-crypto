@@ -1,0 +1,36 @@
+inherit lib
+
+version="ce6762030f814bc737bb0a097c17201e0b2edbc5"
+source="https://github.com/ExodusMovement/bitcoin-magnifier.git#${version}"
+
+
+srcdir="$base_dir/../src"
+
+build() {
+    rm -rf $srcdir/crypto
+    mkdir -p $srcdir/crypto
+    cp -a ./src/crypto/hmac_sha512.* $srcdir/crypto/
+    cp -a ./src/crypto/sha512.* $srcdir/crypto/
+    cp -a ./src/crypto/common.h $srcdir/crypto/common.h
+
+    cp -a ./src/crypto/hmac_sha512.* $srcdir/../test/crypto/
+    cp -a ./src/crypto/sha512.* $srcdir/../test/crypto/
+    cp -a ./src/crypto/common.h $srcdir/../test/crypto/common.h
+
+    mkdir -p $install_dir/include/crypto
+    cp -a ./src/crypto/hmac_sha512.h $install_dir/include/crypto/hmac_sha512.h
+    cp -a ./src/crypto/sha512.h $install_dir/include/crypto/sha512.h
+    cp -a ./src/crypto/common.h $install_dir/include/crypto/common.h
+
+    rm -rf $srcdir/compat
+    mkdir -p $srcdir/compat
+    cp -a ./src/compat/endian.h $srcdir/compat/endian.h
+    cp -a ./src/compat/byteswap.h $srcdir/compat/byteswap.h
+
+    cp -a ./src/compat/endian.h $srcdir/../test/compat/endian.h
+    cp -a ./src/compat/byteswap.h $srcdir/../test/compat/byteswap.h
+
+    mkdir -p $install_dir/include/compat
+    cp -a ./src/compat/endian.h $install_dir/include/compat/endian.h
+    cp -a ./src/compat/byteswap.h $install_dir/include/compat/byteswap.h
+}

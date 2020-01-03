@@ -1,0 +1,27 @@
+inherit lib
+
+version="ce6762030f814bc737bb0a097c17201e0b2edbc5"
+source="https://github.com/ExodusMovement/bitcoin-magnifier.git#${version}"
+
+build() {
+    cd src/secp256k1
+
+    # Optimize:
+    patch -p1 < $recipe_dir/optimize.patch
+
+    # Build:
+    echo "./configure --enable-static --disable-shared --host=$cross --prefix=$install_dir --disable-tests --with-bignum=no --with-field=32bit    "
+    echo "$cross"
+    autoreconf -i
+    ./configure --enable-static --disable-shared --host=$cross --prefix=$install_dir --disable-tests --with-bignum=no --with-field=32bit    
+
+    make clean
+    make
+    make install
+
+    cp include/secp256k1.h $install_dir/include
+    cp -f build/libsecp256k1.a $install_dir/lib/
+}
+
+include="include/secp256k1.h"
+lib="lib/libsecp256k1.a"

@@ -9,6 +9,7 @@
 #include <cryptonote_basic/cryptonote_format_utils.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include "keygen.h"
 
 void test_encode() {
     size_t length = 0;
@@ -45,8 +46,19 @@ void test_decode() {
     delete[] input;
 }
 
+void test_derive() {
+    std::string seed = "test test test test test test test test test test test test test test test test";
+    std::cout << "Test derive\n";
+    std::string key = fast_crypto_derive(seed);
+    std::cout << key << '\n';
+    std::cout << key.size() << '\n';
+    std::cout << seed << '\n';
+    std::cout << "\n";
+}
+
 int main() {
-    test_decode();
+    // test_decode();
+    test_derive();
 
     return 0;
 }

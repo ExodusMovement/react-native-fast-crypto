@@ -78,15 +78,27 @@
 
 RCT_EXPORT_MODULE()
 
-RCT_REMAP_METHOD(moneroCore, :(NSString*) method
-                 :(NSString*) params
-                 :(RCTPromiseResolveBlock) resolve
-                 :(RCTPromiseRejectBlock) reject)
+RCT_EXPORT_METHOD(moneroCore :(NSString*) method :(NSString*) params :(RCTPromiseResolveBlock) resolve :(RCTPromiseRejectBlock) reject)
 {
     if ([method isEqualToString:@"download_and_process"]) {
         [RNFastCrypto handleDownloadAndProcess:method :params :resolve :reject];
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
+}
+
+RCT_EXPORT_METHOD(keygen :(NSString*) method :(NSString*) params :(RCTPromiseResolveBlock) resolve :(RCTPromiseRejectBlock) reject) {
+    char *pszResult = NULL;
+
+    fast_crypto_keygen([method UTF8String], [params UTF8String], &pszResult);
+
+    if (pszResult == NULL) {
+        resolve(NULL);
+        return;
+    }
+
+    NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+    free(pszResult);
+    resolve(jsonResult);
 }
 @end
