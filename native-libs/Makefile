@@ -2,8 +2,7 @@
 
 # Build settings:
 WORK_DIR ?= build
-INSTALL_PATH ?= /usr/local
-PREFIX ?= deps/build/prefix
+PREFIX = deps/build/prefix
 
 # Compiler options:
 CFLAGS   += -D_GNU_SOURCE -DDEBUG -g -Wall -fPIC -std=c99
