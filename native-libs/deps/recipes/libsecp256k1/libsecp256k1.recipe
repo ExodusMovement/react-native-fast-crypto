@@ -16,11 +16,10 @@ build() {
     ./configure --enable-static --disable-shared --host=$cross --prefix=$install_dir --disable-tests --with-bignum=no --with-field=32bit    
 
     make clean
-    make
+    make -j$(nproc)
     make install
 
     cp include/secp256k1.h $install_dir/include
-    cp -f build/libsecp256k1.a $install_dir/lib/
 }
 
 include="include/secp256k1.h"

@@ -65,7 +65,7 @@ build() {
     cmake .. $args || true # Run once to clear error
     cmake .. $args
 
-    make
+    make -j$(nproc)
 
     cd ..
 
