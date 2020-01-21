@@ -43,9 +43,9 @@ done
     if [[ "$NATIVE_TESTS" -eq "1" ]]; then
         targets="$targets nativecrypto.build-native"
     else
-        if [ Darwin = $(uname -s) ]; then
-            targets="$targets nativecrypto.package-ios-universal"
-        fi
+        #if [ Darwin = $(uname -s) ]; then
+        #    targets="$targets nativecrypto.package-ios-universal"
+        #fi
 
         targets="$targets nativecrypto.build-android-arm"
         targets="$targets nativecrypto.build-android-arm64"
@@ -65,12 +65,12 @@ if [[ "$NATIVE_TESTS" -eq "1" ]]; then
 fi
 
 # Copy the results locally:
-if [ Darwin = $(uname -s) ]; then
-    mkdir -m 0775 -p ios/Headers
-    mkdir -m 0775 -p ios/Libraries
-    cp -aL $BUILD_DIR/nativecrypto/nativecrypto-ios-universal/include/* ios/Headers
-    cp -a $BUILD_DIR/nativecrypto/nativecrypto-ios-universal/lib/* ios/Libraries
-fi
+#if [ Darwin = $(uname -s) ]; then
+#    mkdir -m 0775 -p ios/Headers
+#    mkdir -m 0775 -p ios/Libraries
+#    cp -aL $BUILD_DIR/nativecrypto/nativecrypto-ios-universal/include/* ios/Headers
+#    cp -a $BUILD_DIR/nativecrypto/nativecrypto-ios-universal/lib/* ios/Libraries
+#fi
 
 BASE="./android"
 JNI_DIR="$BASE/jni"
