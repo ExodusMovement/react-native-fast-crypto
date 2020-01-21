@@ -92,4 +92,35 @@ Java_co_airbitz_fastcrypto_MoneroAsyncTask_moneroCoreJNI(JNIEnv *env, jobject th
     return out;
 }
 
+JNIEXPORT jstring JNICALL
+Java_co_airbitz_fastcrypto_KeygenAsyncTask_keygenJNI(JNIEnv *env, jobject thiz,
+                                                            jstring jsMethod,
+                                                            jstring jsJsonParams) {
+    char *szJsonParams = (char *) 0;
+    char *szMethod = (char *) 0;
+
+    if (jsMethod) {
+        szMethod = (char *) env->GetStringUTFChars(jsMethod, 0);
+        if (!szMethod) {
+            return env->NewStringUTF("Invalid monero method!");
+        }
+    }
+
+    if (jsJsonParams) {
+        szJsonParams = (char *) env->GetStringUTFChars(jsJsonParams, 0);
+        if (!szJsonParams) {
+            env->ReleaseStringUTFChars(jsMethod, szMethod);
+            return env->NewStringUTF("Invalid monero jsonParams!");
+        }
+    }
+
+    char *szResultHex = NULL;
+    fast_crypto_keygen(szMethod, szJsonParams, &szResultHex);
+    jstring out = env->NewStringUTF(szResultHex);
+    free(szResultHex);
+    env->ReleaseStringUTFChars(jsJsonParams, szJsonParams);
+    env->ReleaseStringUTFChars(jsMethod, szMethod);
+    return out;
+}
+
 }

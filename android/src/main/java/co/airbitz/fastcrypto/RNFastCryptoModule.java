@@ -25,11 +25,14 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void moneroCore(
-            final String method,
-            final String jsonParams,
-            final Promise promise) {
+    public void moneroCore(final String method, final String jsonParams, final Promise promise) {
         AsyncTask task = new MoneroAsyncTask(method, jsonParams, userAgent, promise);
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+    }
+
+    @ReactMethod
+    public void keygen(final String method, final String jsonParams, final Promise promise) {
+        AsyncTask task = new KeygenAsyncTask(method, jsonParams, userAgent, promise);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
     }
 }
