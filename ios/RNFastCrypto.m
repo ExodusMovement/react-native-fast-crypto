@@ -14,6 +14,50 @@
     return dispatch_queue_create("io.exodus.RNFastCrypto.MainQueue", qosAttribute);
 }
 
++ (void) handleGetTransactionPoolHashes:(NSString*) method
+                                       :(NSString*) params
+                                       :(RCTPromiseResolveBlock) resolve
+                                       :(RCTPromiseRejectBlock) reject {
+    NSURL *url = [NSURL URLWithString:@"https://xmr.exodus.io/get_transaction_pool_hashes.bin"];
+
+    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+    [urlRequest setHTTPMethod:@"POST"];
+    [urlRequest setTimeoutInterval: 5];
+
+    NSURLSession *session = [NSURLSession sharedSession];
+
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            resolve(@"{\"err_msg\":\"Network request failed\"}");
+            return;
+        }
+
+        NSRange dataRange = NSMakeRange(0, data.length);
+
+        NSData *statusStop = [@"\"status\": \"OK\"" dataUsingEncoding:NSUTF8StringEncoding];
+        NSData *txHashesStop = [@"\"tx_hashes\": \"" dataUsingEncoding:NSUTF8StringEncoding];
+        NSData *quotationStop = [@"\",\r\n" dataUsingEncoding:NSUTF8StringEncoding];
+
+        NSRange statusRange = [data rangeOfData:statusStop options:0 range:dataRange];
+        NSRange txHashRange = [data rangeOfData:txHashesStop options:0 range:dataRange];
+        NSRange quotationRange = [data rangeOfData:quotationStop options:0 range:NSMakeRange(txHashRange.location + txHashRange.length, data.length - txHashRange.location - txHashRange.length)];
+
+        if (statusRange.location == NSNotFound || txHashRange.location == NSNotFound || quotationRange.location == NSNotFound) {
+            resolve(@"{\"err_msg\":\"Network request failed\"}");
+            return;
+        }
+
+        unsigned long start = txHashRange.location + txHashRange.length;
+        NSRange hashesRange = NSMakeRange(start, quotationRange.location - start);
+        NSData *hashesData = [data subdataWithRange:hashesRange];
+
+        // TODO: Forward hashesData to native
+
+        resolve(@"{\"err_msg\":\"X\"}");
+    }];
+    [task resume];
+}
+
 + (void) handleDownloadAndProcess:(NSString*) method
                                  :(NSString*) params
                                  :(RCTPromiseResolveBlock) resolve
@@ -85,6 +129,8 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
 {
     if ([method isEqualToString:@"download_and_process"]) {
         [RNFastCrypto handleDownloadAndProcess:method :params :resolve :reject];
+    } else if ([method isEqualToString:@"test"]) {
+        [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
