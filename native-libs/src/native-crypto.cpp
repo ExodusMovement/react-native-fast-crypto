@@ -27,6 +27,20 @@ void extract_utxos_from_blocks_response(const char *buffer, size_t length, const
     memcpy(*pszResult, result.c_str(), result.length() + 1);
 }
 
+void get_transaction_pool_hashes(const char *buffer, size_t length, char **pszResult) {
+    std::string result;
+
+    try {
+        result = serial_bridge::get_transaction_pool_hashes_str(buffer, length);
+    } catch (...) {
+        result = "{\"err_msg\":\"mymonero-core-cpp threw an exception\"}";
+    }
+
+    int size = result.length() + 1;
+    *pszResult = (char *) malloc(sizeof(char) * size);
+    memcpy(*pszResult, result.c_str(), result.length() + 1);
+}
+
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult) {
     std::string strParams = szJsonParams;
     std::string method = szMethod;

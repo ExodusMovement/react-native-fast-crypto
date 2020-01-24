@@ -10,6 +10,7 @@ import org.json.JSONObject;
 
 import java.io.DataInputStream;
 import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -39,6 +40,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     public native String moneroCoreJNI(String method, String jsonParams);
     public native int moneroCoreCreateRequest(ByteBuffer requestBuffer, int height);
     public native String extractUtxosFromBlocksResponse(ByteBuffer buffer, String jsonParams);
+    public native String getTransactionPoolHashes(ByteBuffer buffer);
 
     @Override
     protected Void doInBackground(Void... voids) {
@@ -71,6 +73,38 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
                     responseBuffer.put(bytes, 0, responseLength);
                     String out = extractUtxosFromBlocksResponse(responseBuffer, jsonParams);
+                    promise.resolve(out);
+                }
+            } catch (Exception e) {
+                promise.reject("Err", e);
+            }
+            return null;
+        } else if (method.equals("get_transaction_pool_hashes")) {
+            try {
+                JSONObject params = new JSONObject(jsonParams);
+                String addr = params.getString("url");
+                URL url = new URL(addr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("User-Agent", userAgent);
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.connect();
+                try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+                    int totalBytes = 0;
+                    byte[] tmp = new byte[8192];
+
+                    int nRead = 0;
+                    while ((nRead = dataInputStream.read(tmp, 0, tmp.length)) != -1) {
+                        buffer.write(tmp, 0, nRead);
+                        totalBytes += nRead;
+                    }
+
+                    ByteBuffer responseBuffer = ByteBuffer.allocateDirect(totalBytes);
+                    responseBuffer.put(buffer.toByteArray(), 0, totalBytes);
+                    String out = getTransactionPoolHashes(responseBuffer);
                     promise.resolve(out);
                 }
             } catch (Exception e) {

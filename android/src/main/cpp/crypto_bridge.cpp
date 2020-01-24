@@ -62,6 +62,20 @@ Java_co_airbitz_fastcrypto_MoneroAsyncTask_extractUtxosFromBlocksResponse(JNIEnv
 }
 
 JNIEXPORT jstring JNICALL
+Java_co_airbitz_fastcrypto_MoneroAsyncTask_getTransactionPoolHashes(JNIEnv *env, jobject thiz, jobject buf) {
+
+    char *data = (char *) env->GetDirectBufferAddress(buf);
+    size_t length = (size_t) env->GetDirectBufferCapacity(buf);
+
+    char *szResultHex = NULL;
+    get_transaction_pool_hashes(data, length, &szResultHex);
+    jstring out = env->NewStringUTF(szResultHex);
+    free(szResultHex);
+
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
 Java_co_airbitz_fastcrypto_MoneroAsyncTask_moneroCoreJNI(JNIEnv *env, jobject thiz,
                                                             jstring jsMethod,
                                                             jstring jsJsonParams) {

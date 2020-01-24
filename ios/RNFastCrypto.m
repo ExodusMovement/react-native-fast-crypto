@@ -18,7 +18,12 @@
                                        :(NSString*) params
                                        :(RCTPromiseResolveBlock) resolve
                                        :(RCTPromiseRejectBlock) reject {
-    NSURL *url = [NSURL URLWithString:@"https://xmr.exodus.io/get_transaction_pool_hashes.bin"];
+    NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *jsonError;
+    NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
+
+    NSString *addr = jsonParams[@"url"];
+    NSURL *url = [NSURL URLWithString:addr];
 
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     [urlRequest setHTTPMethod:@"POST"];
@@ -32,28 +37,13 @@
             return;
         }
 
-        NSRange dataRange = NSMakeRange(0, data.length);
+        char *pszResult = NULL;
 
-        NSData *statusStop = [@"\"status\": \"OK\"" dataUsingEncoding:NSUTF8StringEncoding];
-        NSData *txHashesStop = [@"\"tx_hashes\": \"" dataUsingEncoding:NSUTF8StringEncoding];
-        NSData *quotationStop = [@"\",\r\n" dataUsingEncoding:NSUTF8StringEncoding];
+        get_transaction_pool_hashes(data.bytes, data.length, &pszResult);
 
-        NSRange statusRange = [data rangeOfData:statusStop options:0 range:dataRange];
-        NSRange txHashRange = [data rangeOfData:txHashesStop options:0 range:dataRange];
-        NSRange quotationRange = [data rangeOfData:quotationStop options:0 range:NSMakeRange(txHashRange.location + txHashRange.length, data.length - txHashRange.location - txHashRange.length)];
-
-        if (statusRange.location == NSNotFound || txHashRange.location == NSNotFound || quotationRange.location == NSNotFound) {
-            resolve(@"{\"err_msg\":\"Network request failed\"}");
-            return;
-        }
-
-        unsigned long start = txHashRange.location + txHashRange.length;
-        NSRange hashesRange = NSMakeRange(start, quotationRange.location - start);
-        NSData *hashesData = [data subdataWithRange:hashesRange];
-
-        // TODO: Forward hashesData to native
-
-        resolve(@"{\"err_msg\":\"X\"}");
+        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+        free(pszResult);
+        resolve(jsonResult);
     }];
     [task resume];
 }
@@ -129,7 +119,7 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
 {
     if ([method isEqualToString:@"download_and_process"]) {
         [RNFastCrypto handleDownloadAndProcess:method :params :resolve :reject];
-    } else if ([method isEqualToString:@"test"]) {
+    } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
