@@ -32,12 +32,14 @@ void test_decode() {
 
     int size = in.tellg();
     in.seekg(0, std::ios::beg);
-
     char *input = new char[size];
     in.read(input, size);
-
     std::string m_body(input, size);
-    std::string params = "REPLACE_ME";
+
+    std::ifstream paramsFile("test/input.json");
+    std::stringstream paramsStream;
+    paramsStream << paramsFile.rdbuf();
+    std::string params = paramsStream.str();
 
     auto resp = serial_bridge::extract_data_from_blocks_response_str(input, size, params);
     std::cout << resp << '\n';

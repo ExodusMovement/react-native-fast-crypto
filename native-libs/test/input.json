@@ -1,0 +1,23 @@
+{
+  "storage_path": "/tmp",
+  "storage_percent": 10,
+  "latest": 2077262,
+  "oldest": 2075072,
+  "size": 330,
+  "params_by_wallet_account": {
+    "exodus_0": {
+      "send_txs": [
+        "a3aa1e4e3565d9e0122013576f8197fe3e0d0552cc5e7ab0afd0abe5260fef36"
+      ],
+      "sec_viewKey_string": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pub_spendKey_string": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "exodus_1": {
+      "send_txs": [
+        "599a3d0f3064ad088449bfbb71d2ef72ef4b84d786f9cb796cc65e8d26f65deb"
+      ],
+      "sec_viewKey_string": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pub_spendKey_string": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}
