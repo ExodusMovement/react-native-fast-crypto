@@ -36,7 +36,7 @@
   "latest": "2077262",
   "oldest": "1971010",
   "size": "331",
-  "txs_by_wallet_accounts": {
+  "txs_by_wallet_account": {
     "exodus_0": [
       {
         "id": "a3aa1e4e3565d9e0122013576f8197fe3e0d0552cc5e7ab0afd0abe5260fef36",
