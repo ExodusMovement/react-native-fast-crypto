@@ -13,6 +13,7 @@
 		35023A6B22D343C800B629D6 /* libmymonerocorecpp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 35023A6622D343C800B629D6 /* libmymonerocorecpp.a */; };
 		35023A6C22D343C800B629D6 /* libnativecrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 35023A6722D343C800B629D6 /* libnativecrypto.a */; };
 		359708BD2386D00900011D93 /* libboost_regex.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 359708BC2386D00900011D93 /* libboost_regex.a */; };
+		35AC74C6246B0B12005374EB /* NSArray+Map.m in Sources */ = {isa = PBXBuildFile; fileRef = 35AC74C5246B0B12005374EB /* NSArray+Map.m */; };
 		B3E7B58A1CC2AC0600A0062D /* RNFastCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = B3E7B5891CC2AC0600A0062D /* RNFastCrypto.m */; };
 /* End PBXBuildFile section */
 
@@ -36,6 +37,8 @@
 		35023A6622D343C800B629D6 /* libmymonerocorecpp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmymonerocorecpp.a; path = Libraries/libmymonerocorecpp.a; sourceTree = "<group>"; };
 		35023A6722D343C800B629D6 /* libnativecrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnativecrypto.a; path = Libraries/libnativecrypto.a; sourceTree = "<group>"; };
 		359708BC2386D00900011D93 /* libboost_regex.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_regex.a; path = Libraries/libboost_regex.a; sourceTree = "<group>"; };
+		35AC74C4246B0B12005374EB /* NSArray+Map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSArray+Map.h"; sourceTree = "<group>"; };
+		35AC74C5246B0B12005374EB /* NSArray+Map.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSArray+Map.m"; sourceTree = "<group>"; };
 		B3E7B5881CC2AC0600A0062D /* RNFastCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RNFastCrypto.h; sourceTree = "<group>"; };
 		B3E7B5891CC2AC0600A0062D /* RNFastCrypto.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFastCrypto.m; sourceTree = "<group>"; };
 		DAE53E761F0E153B00E466B0 /* native-crypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "native-crypto.h"; path = "Headers/native-crypto.h"; sourceTree = "<group>"; };
@@ -81,6 +84,8 @@
 				DAE53E6A1F0E14FB00E466B0 /* Libraries */,
 				B3E7B5881CC2AC0600A0062D /* RNFastCrypto.h */,
 				B3E7B5891CC2AC0600A0062D /* RNFastCrypto.m */,
+				35AC74C4246B0B12005374EB /* NSArray+Map.h */,
+				35AC74C5246B0B12005374EB /* NSArray+Map.m */,
 				134814211AA4EA7D00B7C361 /* Products */,
 				359708BB2386D00900011D93 /* Frameworks */,
 			);
@@ -164,6 +169,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B3E7B58A1CC2AC0600A0062D /* RNFastCrypto.m in Sources */,
+				35AC74C6246B0B12005374EB /* NSArray+Map.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

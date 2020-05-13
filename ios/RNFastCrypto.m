@@ -1,6 +1,7 @@
 
 #import "RNFastCrypto.h"
 #import "native-crypto.h"
+#import "NSArray+Map.h"
 #import <Foundation/Foundation.h>
 
 #include <stdbool.h>
@@ -124,5 +125,49 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
+}
+
+RCT_EXPORT_METHOD(readSettings:(NSString *)dirPath
+                  prefix:(NSString *)filePrefix
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSError *error = nil;
+
+    NSArray *contents = [fileManager contentsOfDirectoryAtPath:dirPath error:&error];
+
+    if (error) {
+        reject(@"error", @"can't read settings file", error);
+        return;
+    }
+
+    NSPredicate *predicateHasPrefix = [NSPredicate predicateWithFormat:@"SELF BEGINSWITH %@", filePrefix];
+    NSArray *filteredArray = [contents filteredArrayUsingPredicate:predicateHasPrefix];
+    
+    NSArray *values = [filteredArray rnfs_mapObjectsUsingBlock:^id(NSString *obj, NSUInteger idx) {
+        NSString *name = [obj stringByReplacingOccurrencesOfString:@".json" withString:@""];
+        NSArray *components = [name componentsSeparatedByString:filePrefix];
+
+        if ([components count] != 2 || [components[1] isEqual:@"enabled"]) return [NSNumber numberWithInt:0];
+
+        return [NSNumber numberWithInteger: [components[1] integerValue]];
+    }];
+
+    NSPredicate *predicateNotNil = [NSPredicate predicateWithFormat:@"SELF != 0"];
+    NSArray *valuesClean = [values filteredArrayUsingPredicate:predicateNotNil];
+
+    if (valuesClean.count == 0) {
+        resolve(@{});
+        return;
+    }
+
+    NSDictionary *r = @{
+        @"size": [NSNumber numberWithInteger:valuesClean.count],
+        @"oldest": [valuesClean valueForKeyPath:@"@min.self"],
+        @"latest": [valuesClean valueForKeyPath:@"@max.self"],
+    };
+
+    resolve(r);
 }
 @end
