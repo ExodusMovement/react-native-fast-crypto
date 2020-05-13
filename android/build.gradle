@@ -1,11 +1,12 @@
 
 buildscript {
     repositories {
+        google()
         jcenter()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.6.3'
     }
 }
 
@@ -20,7 +21,7 @@ android {
     buildToolsVersion safeExtGet('buildToolsVersion', '26.0.3')
 
     defaultConfig {
-        minSdkVersion safeExtGet('minSdkVersion', 16)
+        minSdkVersion safeExtGet('minSdkVersion', 19)
         targetSdkVersion safeExtGet('targetSdkVersion', 26)
         versionCode 1
         versionName "1.0"
@@ -60,6 +61,7 @@ android {
 
 repositories {
     mavenCentral()
+    google()
 }
 
 dependencies {
