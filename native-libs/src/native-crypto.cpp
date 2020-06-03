@@ -13,6 +13,7 @@
 #include <serial_bridge_index.hpp>
 #include <boost/chrono.hpp>
 #include <boost/thread/thread.hpp>
+#include <exception>
 
 const char *create_blocks_request(int height, size_t *length) {
     return serial_bridge::create_blocks_request(height, length);
@@ -100,8 +101,15 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
             *pszResult = NULL;
             return;
         }
+    } catch (std::exception &e) {
+        std::string error_message;
+        error_message.append("{\"err_msg\":\"mymonero-core-cpp threw an std::exception ");
+        error_message.append(e.what());
+        error_message.append("\"}");
+
+        result = error_message;
     } catch (...) {
-        result = "{\"err_msg\":\"mymonero-core-cpp threw an exception\"}";
+        result = "{\"err_msg\":\"mymonero-core-cpp threw an unknown type\"}";
     }
     int size = result.length() + 1;
     *pszResult = (char *) malloc(sizeof(char) * size);
