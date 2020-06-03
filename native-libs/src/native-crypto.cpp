@@ -11,8 +11,6 @@
 #include <string.h>
 #include <math.h>
 #include <serial_bridge_index.hpp>
-#include <boost/chrono.hpp>
-#include <boost/thread/thread.hpp>
 #include <exception>
 
 const char *create_blocks_request(int height, size_t *length) {
@@ -94,9 +92,6 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
             result = serial_bridge::encrypt_payment_id(strParams);
         } else if (method.compare("extract_utxos") == 0) {
             result = serial_bridge::extract_utxos(strParams);
-        } else if (method.compare("sleep") == 0) {
-            boost::this_thread::sleep_for(boost::chrono::milliseconds(15 * 1000));
-            result = "{}";
         } else {
             *pszResult = NULL;
             return;
