@@ -17,7 +17,6 @@ set(MONERO_SRC "${MYMONERO_CORE_CPP}/contrib/monero-core-custom")
 include_directories(${MONERO_SRC})
 include_directories("${MONERO_SRC}/epee/include")
 include_directories("${MONERO_SRC}/common")
-include_directories("${MONERO_SRC}/vtlogger")
 include_directories("${MONERO_SRC}/crypto")
 include_directories("${MONERO_SRC}/cryptonote_basic")
 include_directories("${MONERO_SRC}/multisig")
@@ -92,7 +91,7 @@ set(
     ${MONERO_SRC}/ringct/bulletproofs.cc
     ${MONERO_SRC}/ringct/multiexp.cc
     ${MONERO_SRC}/mnemonics/electrum-words.cpp
-    ${MONERO_SRC}/vtlogger/logger.cpp
+    ${MONERO_SRC}/crypto/rx-slow-hash-dummied.cpp
     ${MONERO_SRC}/contrib/libsodium/src/crypto_verify/verify.c
 )
 

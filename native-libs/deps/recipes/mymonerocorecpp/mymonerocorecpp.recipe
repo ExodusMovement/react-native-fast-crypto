@@ -1,7 +1,7 @@
 depends="boost monerocorecustom"
 inherit lib
 
-version="3ef51d0d3e90d94235e56b3f5129cef082e8082c"
+version="b848d85cd6cee24222781b052dee9553e305c1b7"
 source="https://github.com/ExodusMovement/mymonero-core-cpp.git#${version}"
 
 build() {
@@ -42,7 +42,8 @@ build() {
         $install_dir/include/string_tools.h \
         $install_dir/include/warnings.h \
         $install_dir/include/wipeable_string.h \
-        $install_dir/include/logger.h \
+        $install_dir/include/byte_slice.h \
+        $install_dir/include/int-util.h \
         $install_dir/include/cryptonote_config.h
 
     # Replace CMakeLists.txt
@@ -97,9 +98,10 @@ build() {
     cp -f contrib/monero-core-custom/epee/include/string_tools.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/warnings.h $install_dir/include/
     cp -f contrib/monero-core-custom/epee/include/wipeable_string.h $install_dir/include/
+    cp -f contrib/monero-core-custom/epee/include/byte_slice.h $install_dir/include/
+    cp -f contrib/monero-core-custom/epee/include/int-util.h $install_dir/include/
 
     # Copy other
-    cp -f contrib/monero-core-custom/vtlogger/logger.h $install_dir/include/
     cp -f contrib/monero-core-custom/cryptonote_config.h $install_dir/include/
     cp -f src/serial_bridge_index.hpp $install_dir/include/
     cp -f build/libmymonerocorecpp.a $install_dir/lib/
