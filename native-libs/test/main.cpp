@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,13 +13,12 @@
 
 void test_encode() {
     size_t length = 0;
-    const char *body = serial_bridge::create_blocks_request(100, &length);
+    const char *body = serial_bridge::create_blocks_request(1573230, &length);
 
-    for (size_t i = 0; i < length; i++) {
-        std::cout << body[i];
-    }
+    std::ofstream out("test/req.bin", std::ios::binary);
+    out.write(body, length);
 
-    std::cout << std::endl;
+    out.close();
 
     std::free((void *)body);
 }

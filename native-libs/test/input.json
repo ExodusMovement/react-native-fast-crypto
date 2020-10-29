@@ -6,18 +6,11 @@
   "size": 330,
   "params_by_wallet_account": {
     "exodus_0": {
-      "send_txs": [
-        "a3aa1e4e3565d9e0122013576f8197fe3e0d0552cc5e7ab0afd0abe5260fef36"
-      ],
-      "sec_viewKey_string": "0000000000000000000000000000000000000000000000000000000000000000",
-      "pub_spendKey_string": "0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    "exodus_1": {
-      "send_txs": [
-        "599a3d0f3064ad088449bfbb71d2ef72ef4b84d786f9cb796cc65e8d26f65deb"
-      ],
-      "sec_viewKey_string": "0000000000000000000000000000000000000000000000000000000000000000",
-      "pub_spendKey_string": "0000000000000000000000000000000000000000000000000000000000000000"
+      "subaddresses": 200,
+      "key_images": [],
+      "sec_viewKey_string": "12de640c5e8e7e318ee701ca4801287f13c657b8290073338b57caa44b21c505",
+      "pub_spendKey_string": "df9cee70033050334f5b1b94b180fa2c08c96149354df0c5337c251b78f01d3a",
+      "sec_spendKey_string": "f3be56ce634c13d47f8170e4f44f9643d4072a28a73d9dc080a5b0dc2ee4a90b"
     }
   }
 }
