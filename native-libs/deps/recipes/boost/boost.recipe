@@ -16,7 +16,7 @@ build_bjam() {
     PREV_CFLAGS=$CFLAGS
     export CC="clang"
     export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    export CFLAGS="-isysroot $platform_sdk"
+    export CFLAGS="-isysroot $platform_sdk -Wno-implicit-function-declaration"
 
     echo "STARTING X"
 
