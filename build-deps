@@ -2,6 +2,8 @@
 export ZERO_AR_DATE=1
 export SOURCE_DATE_EPOCH=0
 
+export RNFC_BUILD_LIBRARIES=1
+
 NATIVE_TESTS=$NATIVE_TESTS
 
 # List of dependencies that should be rebuilt.

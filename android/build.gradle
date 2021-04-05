@@ -16,6 +16,8 @@ def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
 
+def buildLibraries = System.getenv('RNFC_BUILD_LIBRARIES')
+
 android {
     compileSdkVersion safeExtGet('compileSdkVersion', 26)
     buildToolsVersion safeExtGet('buildToolsVersion', '26.0.3')
@@ -43,9 +45,11 @@ android {
         abortOnError false
     }
 
-    externalNativeBuild {
-        cmake {
-            path "src/main/cpp/CMakeLists.txt"
+    if (buildLibraries != null) {
+        externalNativeBuild {
+            cmake {
+                path "src/main/cpp/CMakeLists.txt"
+            }
         }
     }
 
@@ -67,4 +71,3 @@ repositories {
 dependencies {
     implementation 'com.facebook.react:react-native:+'
 }
-  
