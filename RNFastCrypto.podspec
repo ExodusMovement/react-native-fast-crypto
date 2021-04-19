@@ -12,16 +12,16 @@ Pod::Spec.new do |s|
   s.author             = { "Paul Puey" => "paul@airbitz.co" }
   s.platform     = :ios, "7.0"
   s.source       = { :git => "https://github.com/ExodusMovement/react-native-fast-crypto.git", :tag => "v#{s.version}" }
-  s.source_files  = "RNFastCrypto/**/*.{h,m}"
+  s.source_files  = "ios/**/*.{h,m}"
   s.requires_arc = true
   s.vendored_libraries =
-    'RNFastCrypto/Libraries/libboost_regex.a',
-    'RNFastCrypto/Libraries/libboost_system.a',
-    'RNFastCrypto/Libraries/libboost_thread.a',
-    'RNFastCrypto/Libraries/libmymonerocorecpp.a',
-    'RNFastCrypto/Libraries/libnativecrypto.a'
+    'ios/Libraries/libboost_regex.a',
+    'ios/Libraries/libboost_system.a',
+    'ios/Libraries/libboost_thread.a',
+    'ios/Libraries/libmymonerocorecpp.a',
+    'ios/Libraries/libnativecrypto.a'
 
 
-  s.dependency "React"
+  s.dependency "React-Core"
 
 end
