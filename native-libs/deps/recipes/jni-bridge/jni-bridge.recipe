@@ -1,0 +1,32 @@
+depends="nativecrypto"
+inherit lib
+
+source="../../../jni-bridge"
+
+build() {
+    case $target in
+    android-*)  cmakeflags="-DCMAKE_TOOLCHAIN_FILE=$recipe_dir/../../classes/android.toolchain.cmake -DANDROID=1" ;;
+    *)          cmakeflags="-C$recipe_dir/../../classes/native.cmake" ;;
+    esac
+
+    # Replace CMakeLists.txt
+    cp -f $recipe_dir/CMakeLists.txt .
+
+    export CFLAGS="$CFLAGS -O2"
+    export CXXFLAGS="$CXXFLAGS -O2"
+
+    mkdir -p build
+    cd build
+
+    args="${cmakeflags} \
+        -DCMAKE_INSTALL_PREFIX=${install_dir} \
+        -DINSTALL_DIR:STRING=${install_dir} \
+        -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+        -DBUILD_SHARED_LIBS:BOOL=FALSE"
+
+    cmake .. $args
+
+    make
+}
+
+lib="lib/libcrypto_bridge.a"

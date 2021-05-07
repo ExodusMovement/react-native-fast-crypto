@@ -9,6 +9,7 @@ NATIVE_TESTS=$NATIVE_TESTS
 # add this dependency there so new files are copied during a build.
 reactive_deps=(
     nativecrypto
+    jni-bridge
 )
 
 set -u
@@ -47,10 +48,10 @@ done
             targets="$targets nativecrypto.package-ios-universal"
         fi
 
-        targets="$targets nativecrypto.build-android-arm"
-        targets="$targets nativecrypto.build-android-arm64"
-        targets="$targets nativecrypto.build-android-x86"
-        targets="$targets nativecrypto.build-android-x86_64"
+        targets="$targets jni-bridge.build-android-arm"
+        targets="$targets jni-bridge.build-android-arm64"
+        targets="$targets jni-bridge.build-android-x86"
+        targets="$targets jni-bridge.build-android-x86_64"
     fi
 
     cd native-libs/deps
@@ -78,21 +79,18 @@ JNI_BUILD_DIR="$JNI_DIR/libs"
 ANDROID_PATH="$BASE/src/main"
 
 rm -rf $JNI_BUILD_DIR
-mkdir -p $JNI_BUILD_DIR/includes
 mkdir -p $JNI_BUILD_DIR/armeabi-v7a
 mkdir -p $JNI_BUILD_DIR/arm64-v8a
 mkdir -p $JNI_BUILD_DIR/x86
 mkdir -p $JNI_BUILD_DIR/x86_64
 
-# Copy & fix header:
-cp native-libs/src/native-crypto.h $JNI_BUILD_DIR/includes
-sed  -e 's/const char *\*/const char *const /' $JNI_BUILD_DIR/includes/native-crypto.h \
-    > $JNI_BUILD_DIR/includes/native-crypto-const.h
-
 # Copy Android libraries:
 copy_so() {
     echo cp $BUILD_DIR/nativecrypto/android-$1/libnativecrypto.so $JNI_BUILD_DIR/$2/
     cp $BUILD_DIR/nativecrypto/android-$1/libnativecrypto.so $JNI_BUILD_DIR/$2/
+
+    echo cp $BUILD_DIR/jni-bridge/android-$1/build/libcrypto_bridge.so $JNI_BUILD_DIR/$2/
+    cp $BUILD_DIR/jni-bridge/android-$1/build/libcrypto_bridge.so $JNI_BUILD_DIR/$2/
 }
 copy_so arm armeabi-v7a
 copy_so arm64 arm64-v8a
