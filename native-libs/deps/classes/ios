@@ -30,8 +30,14 @@ build_ios() {
     export CPP="clang -E"
     export CXX="clang++"
 
+    case $2 in
+        iPhoneSimulator) version_flag='-mios-simulator-version-min=10.0' ;;
+        *) version_flag='-miphoneos-version-min=10.0' ;;
+    esac
+
+
     platform_sdk="$platform_dir/SDKs/${2}.sdk"
-    sdk_flags="-arch $1 -isysroot $platform_sdk -miphoneos-version-min=10.0 -O2 -maes"
+    sdk_flags="-arch $1 -isysroot $platform_sdk $version_flag -O2 -maes"
     export SDKROOT=$platform_sdk # https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_SYSROOT.html
     export CFLAGS="$sdk_flags -fembed-bitcode -isystem${install_dir}/include -Werror=partial-availability"
     export CXXFLAGS="$sdk_flags -fembed-bitcode -isystem${install_dir}/include -Werror=partial-availability"
