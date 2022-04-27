@@ -49,4 +49,5 @@ buck-out/
 
 # Binaries
 ios/Libraries/
+ios/Frameworks/
 android/jni/libs/

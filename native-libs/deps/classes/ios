@@ -6,13 +6,13 @@ inherit common
 build_ios() {
     # Put the source in the working directory:
     top_work_dir=$work_dir
-    work_dir=$work_dir/ios-$1
+    work_dir=$work_dir/ios-$1_$2
     mkdir -p $work_dir
     unpack
 
     # Establish expected variables:
-    target=ios-$1
-    install_dir=$build_dir/prefix/ios/$1
+    target=ios-$1-$2
+    install_dir=$build_dir/prefix/ios/$1_$2
 
     case $1 in
     arm*)   cross=arm-apple-darwin10 ;;
@@ -51,23 +51,28 @@ build_ios() {
     ([ -n "$include" ] && (cd $install_dir; find $include -type f) || true) > \
         $top_work_dir/include-${target}.txt
 }
-build_ios_armv7() {
+build_ios_armv7_iPhoneOS() {
     build_ios armv7 iPhoneOS
 }
-build_ios_armv7s() {
+build_ios_armv7s_iPhoneOS() {
     build_ios armv7s iPhoneOS
 }
-build_ios_arm64() {
+build_ios_arm64_iPhoneOS() {
     build_ios arm64 iPhoneOS
 }
-build_ios_i386() {
+build_ios_arm64_iPhoneSimulator() {
+    build_ios arm64 iPhoneSimulator
+}
+build_ios_i386_iPhoneSimulator() {
     build_ios i386 iPhoneSimulator
 }
-build_ios_x86_64() {
+build_ios_x86_64_iPhoneSimulator() {
     build_ios x86_64 iPhoneSimulator
 }
 
-arches="armv7 armv7s arm64 i386 x86_64"
+xcframework_arches="arm64"
+# arches="armv7_iPhoneOS armv7s_iPhoneOS arm64_iPhoneOS arm64_iPhoneSimulator i386_iPhoneSimulator x86_64_iPhoneSimulator"
+arches="arm64_iPhoneOS x86_64_iPhoneSimulator"
 
 for arch in $arches ; do
     deps="download"
@@ -77,46 +82,29 @@ for arch in $arches ; do
     task build-ios-$arch $deps
 done
 
-# Creates a universal binary from the various platform-specific files
-ios_universal() {
-    # Expand wildcards:
-    libs=$(cd $build_dir/prefix/ios/armv7; echo $lib)
-    for l in $libs; do
-        in_libs=$(echo $build_dir/prefix/ios/*/$l)
-        out_name=$work_dir/ios-universal/$l
-        mkdir -p $(dirname $out_name)
-        echo "lipo -create $in_libs -output $out_name"
-        lipo -create $in_libs -output $out_name
-    done
-}
-task ios-universal $(for arch in $arches; do echo build-ios-$arch; done) \
-    $(for dep in $depends; do echo $dep.ios-universal; done)
-
 package_ios_universal() {
     package_dir=${recipe}-ios-universal
     rm -rf $package_dir
     mkdir $package_dir
     depends=$(cat depends)
 
-    # Gather universal libraries:
-    cp -rv ios-universal/* $package_dir
-    for dep in $depends; do
-        echo "package:" $package_dir
-        if [ -d $build_dir/$dep/ios-universal ]
-        then
-            cp -rv $build_dir/$dep/ios-universal/* $package_dir
-        fi
+    for arch in $arches; do
+        in_libs=$(echo $build_dir/prefix/ios/$arch/lib/*.a)
+
+        for l in $in_libs; do
+            xcodebuild -create-xcframework -library $l -output $package_dir/rnfc.xcframework
+        done
     done
 
     # Gather headers:
-    for f in $(cat include-ios-armv7.txt); do
+    for f in $(cat include-ios-arm64-iPhoneOS.txt); do
         mkdir -p $(dirname $package_dir/$f)
-        ln -vs $build_dir/prefix/ios/armv7/$f $package_dir/$f
+        ln -vs $build_dir/prefix/ios/arm64_iPhoneOS/$f $package_dir/$f
     done
 
     # Make the archive:
     zip -r $recipe-ios-universal-$(date +%Y-%m-%d) $package_dir
 }
-task package-ios-universal write-deps ios-universal
+task package-ios-universal write-deps $(for arch in $arches; do echo build-ios-$arch; done)
 
 default=package-ios-universal
