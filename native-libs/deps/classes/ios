@@ -76,7 +76,6 @@ build_ios_x86_64_iPhoneSimulator() {
     build_ios x86_64 iPhoneSimulator
 }
 
-xcframework_arches="arm64"
 arches="armv7_iPhoneOS armv7s_iPhoneOS arm64_iPhoneOS arm64_iPhoneSimulator i386_iPhoneSimulator x86_64_iPhoneSimulator"
 
 for arch in $arches ; do
