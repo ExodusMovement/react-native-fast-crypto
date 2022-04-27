@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.4.1)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fvisibility=hidden -fvisibility-inlines-hidden")
 SET(INSTALL_DIR "" CACHE STRING "build/prefix install dir")
 
+set(CMAKE_C_COMPILER_WORKS 1)
+set(CMAKE_CXX_COMPILER_WORKS 1)
+
 project(mymonerocorecpp C CXX)
 #
 include_directories("${INSTALL_DIR}/include/") #
