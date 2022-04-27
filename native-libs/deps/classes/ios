@@ -77,8 +77,7 @@ build_ios_x86_64_iPhoneSimulator() {
 }
 
 xcframework_arches="arm64"
-# arches="armv7_iPhoneOS armv7s_iPhoneOS arm64_iPhoneOS arm64_iPhoneSimulator i386_iPhoneSimulator x86_64_iPhoneSimulator"
-arches="arm64_iPhoneOS x86_64_iPhoneSimulator"
+arches="armv7_iPhoneOS armv7s_iPhoneOS arm64_iPhoneOS arm64_iPhoneSimulator i386_iPhoneSimulator x86_64_iPhoneSimulator"
 
 for arch in $arches ; do
     deps="download"
