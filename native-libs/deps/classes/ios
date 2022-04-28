@@ -76,7 +76,12 @@ build_ios_x86_64_iPhoneSimulator() {
     build_ios x86_64 iPhoneSimulator
 }
 
-arches="armv7_iPhoneOS armv7s_iPhoneOS arm64_iPhoneOS arm64_iPhoneSimulator i386_iPhoneSimulator x86_64_iPhoneSimulator"
+architectures="i386 x86_64 arm64 armv7 armv7s"
+platforms="iPhoneOS iPhoneSimulator"
+
+simulatorTarges="arm64_iPhoneSimulator i386_iPhoneSimulator x86_64_iPhoneSimulator"
+iosTargets="armv7_iPhoneOS armv7s_iPhoneOS arm64_iPhoneOS"
+arches="$iosTargets $simulatorTarges"
 
 for arch in $arches ; do
     deps="download"
@@ -92,12 +97,28 @@ package_ios_universal() {
     mkdir $package_dir
     depends=$(cat depends)
 
-    for arch in $arches; do
-        in_libs=$(echo $build_dir/prefix/ios/$arch/lib/*.a)
-
-        for l in $in_libs; do
-            xcodebuild -create-xcframework -library $l -output $package_dir/rnfc.xcframework
+    in_libs=$(echo $build_dir/prefix/ios/arm64_iPhoneOS/lib/*.a)
+    for l in $in_libs; do
+        filename=$(basename $l)
+        rm -rf $package_dir/$filename.xcframework
+        for platform in $platforms; do
+            opts=""
+            for arch in $architectures; do
+                echo "arch" $arch
+                echo "$build_dir/prefix/ios/"$arch"_$platform/lib/$filename"
+                [[ -e $build_dir/prefix/ios/"$arch"_$platform/lib/$filename ]] && opts+="$build_dir/prefix/ios/"$arch"_$platform/lib/$filename "
+            done
+            echo "test opts" $opts
+            mkdir -p $package_dir/$platform
+            lipo -create $opts -output $package_dir/$platform/$filename
         done
+
+        xcodebuildOpts=""
+        for platform in $platforms; do
+            xcodebuildOpts+="-library $package_dir/$platform/$filename "
+        done
+
+        xcodebuild -create-xcframework $xcodebuildOpts -output $package_dir/$filename.xcframework
     done
 
     # Gather headers:
