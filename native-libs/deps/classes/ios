@@ -104,11 +104,8 @@ package_ios_universal() {
         for platform in $platforms; do
             opts=""
             for arch in $architectures; do
-                echo "arch" $arch
-                echo "$build_dir/prefix/ios/"$arch"_$platform/lib/$filename"
                 [[ -e $build_dir/prefix/ios/"$arch"_$platform/lib/$filename ]] && opts+="$build_dir/prefix/ios/"$arch"_$platform/lib/$filename "
             done
-            echo "test opts" $opts
             mkdir -p $package_dir/$platform
             lipo -create $opts -output $package_dir/$platform/$filename
         done
