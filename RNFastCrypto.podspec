@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/ExodusMovement/react-native-fast-crypto.git", :tag => "v#{s.version}" }
   s.source_files  = "ios/**/*.{h,m}"
   s.requires_arc = true
-  s.vendored_frameworks = "ios/Farmerowks/*.xcframework"
+  s.vendored_frameworks = "ios/Frameworks/*.xcframework"
 
   s.dependency "React-Core"
 
