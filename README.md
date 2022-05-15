@@ -40,34 +40,19 @@ This library implements fast, fully native crypto routines for React Native unde
 
 ### Prerequisites
 
+- Xcode (13.3 or later should work)
 - brew
-- Xcode 10.3
 
 ### Setup
-
-1. Setup Xcode
 
 ```bash
 sudo xcode-select --switch /Applications/Xcode.app
 sudo xcodebuild -license
-```
 
-2. Install build tools
+brew install autoconf automake cmake git pkgconfig protobuf python
 
-```bash
-brew install autoconf automake cmake git pkgconfig protobuf
-```
-
-2. Install SDK headers
-
-```bash
-open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
-```
-
-3. Clone the repository
-
-```bash
-git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
+sudo mkdir -p /usr/local/bin
+sudo ln -sf $(brew --prefix python)/bin/python3 /usr/local/bin/python
 ```
 
 ### Build
@@ -75,25 +60,7 @@ git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
 1. Build binaries
 
 ```bash
-yarn build
-```
-
-## tl;dr
-
-Setup (once)
-
-```bash
-# macOS 10.14.6 - Xcode 11.0
-sudo xcode-select --switch /Applications/Xcode.app
-sudo xcodebuild -license
-brew install autoconf automake cmake git pkgconfig protobuf
-open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
-```
-
-Build
-
-```bash
-rm -r react-native-fast-crypto
 git clone git@github.com:ExodusMovement/react-native-fast-crypto.git
 cd react-native-fast-crypto && yarn build
+yarn build
 ```
