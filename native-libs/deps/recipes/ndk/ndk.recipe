@@ -1,16 +1,18 @@
 # This recipe contains the setup tasks for unpacking and installing the NDK
 inherit common
 
-version="r15c"
+version="r25b"
 
 # Select the correct NDK version for the host system:
 case $(uname -sm) in
 "Linux x86_64")
-    system=linux-x86_64
-    source="https://dl.google.com/android/repository/android-ndk-$version-$system.zip#0bf02d4e8b85fd770fd7b9b2cdec57f9441f27a2" ;;
-"Darwin x86_64")
-    system=darwin-x86_64
-    source="https://dl.google.com/android/repository/android-ndk-$version-$system.zip#ea4b5d76475db84745aa8828000d009625fc1f98" ;;
+    system=linux
+    fileName="android-ndk-$version-$system.zip"
+    source="https://dl.google.com/android/repository/android-ndk-r25b-linux.zip#e27dcb9c8bcaa77b78ff68c3f23abcf6867959eb" ;;
+"Darwin x86_64" | "Darwin arm64")
+    system=darwin
+    fileName="android-ndk-$version-$system.dmg"
+    source="https://dl.google.com/android/repository/android-ndk-r25b-darwin.dmg#4da4e00c42d37ca1e19190776a92d3b0ae4f3e29" ;;
 *)
     echo "Unknown host platform!"
     exit 1;;
@@ -19,8 +21,16 @@ esac
 # Unzip the NDK archive.
 unzip_ndk() {
     echo Unpacking NDK...
-    archive="$download_dir/android-ndk-$version-$system.zip"
-    unzip -o -d"$work_dir" $archive
+    archive="$download_dir/$fileName"
+
+    if [ $system = darwin ]; then
+        hdiutil attach $archive -mountpoint "$work_dir/dmg"
+        app=$(echo $work_dir/dmg/Android*.app)
+        cp -r "$app/Contents/NDK/" "$work_dir/android-ndk-$version"
+        hdiutil detach "$work_dir/dmg"
+    else
+        unzip -o -d"$work_dir" $archive
+    fi
 }
 task unzip-ndk download
 
