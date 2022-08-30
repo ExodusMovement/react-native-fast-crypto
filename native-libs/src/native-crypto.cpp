@@ -48,6 +48,8 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
     try {
         if (method.compare("send_step1__prepare_params_for_get_decoys") == 0) {
             result = serial_bridge::send_step1__prepare_params_for_get_decoys(strParams);
+        } else if (method.compare("pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts") == 0) {
+            result = serial_bridge::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(strParams);
         } else if (method.compare("send_step2__try_create_transaction") == 0) {
             result = serial_bridge::send_step2__try_create_transaction(strParams);
         } else if (method.compare("decode_address") == 0) {
