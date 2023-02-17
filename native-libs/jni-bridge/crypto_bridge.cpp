@@ -106,4 +106,93 @@ Java_co_airbitz_fastcrypto_MoneroAsyncTask_moneroCoreJNI(JNIEnv *env, jobject th
     return out;
 }
 
+JNIEXPORT jstring JNICALL
+Java_co_airbitz_fastcrypto_RNFastCryptoModule_secp256k1EcPubkeyCreateJNI(JNIEnv *env, jobject thiz,
+                                                        jstring jsPrivateKeyHex, jint jiCompressed) {
+    char *szPrivateKeyHex = (char *) 0;
+    szPrivateKeyHex = 0;
+    if (jsPrivateKeyHex) {
+        szPrivateKeyHex = (char *) env->GetStringUTFChars(jsPrivateKeyHex, 0);
+        if (!szPrivateKeyHex) {
+            return env->NewStringUTF("Invalid private key error!");
+        }
+    }
+    int privateKeyLen = strlen(szPrivateKeyHex);
+
+    char szPublicKeyHex[privateKeyLen * 2];
+
+    fast_crypto_secp256k1_ec_pubkey_create(szPrivateKeyHex, szPublicKeyHex, jiCompressed);
+    jstring out = env->NewStringUTF(szPublicKeyHex);
+    env->ReleaseStringUTFChars(jsPrivateKeyHex, szPrivateKeyHex);
+
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_co_airbitz_fastcrypto_RNFastCryptoModule_secp256k1EcPrivkeyTweakAddJNI(JNIEnv *env, jobject thiz,
+                                                                            jstring jsPrivateKeyHex,
+                                                                            jstring jsTweakHex) {
+    char *szPrivateKeyHexTemp = (char *) 0;
+    char *szTweakHex = (char *) 0;
+
+    if (jsPrivateKeyHex) {
+        szPrivateKeyHexTemp = (char *) env->GetStringUTFChars(jsPrivateKeyHex, 0);
+        if (!szPrivateKeyHexTemp) {
+            return env->NewStringUTF("Invalid private key error!");
+        }
+    }
+
+    int privateKeyLen = strlen(szPrivateKeyHexTemp);
+    char szPrivateKeyHex[privateKeyLen + 1];
+    strcpy(szPrivateKeyHex, (const char *) szPrivateKeyHexTemp);
+
+    if (jsTweakHex) {
+        szTweakHex = (char *) env->GetStringUTFChars(jsTweakHex, 0);
+        if (!szTweakHex) {
+            env->ReleaseStringUTFChars(jsPrivateKeyHex, szPrivateKeyHexTemp);
+            return env->NewStringUTF("Invalid tweak error!");
+        }
+    }
+
+    fast_crypto_secp256k1_ec_privkey_tweak_add(szPrivateKeyHex, szTweakHex);
+    jstring out = env->NewStringUTF(szPrivateKeyHex);
+    env->ReleaseStringUTFChars(jsPrivateKeyHex, szPrivateKeyHexTemp);
+    env->ReleaseStringUTFChars(jsTweakHex, szTweakHex);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_co_airbitz_fastcrypto_RNFastCryptoModule_secp256k1EcPubkeyTweakAddJNI(JNIEnv *env, jobject thiz,
+                                                                           jstring jsPublicKeyHex,
+                                                                           jstring jsTweakHex,
+                                                                           jint jiCompressed) {
+    char *szPublicKeyHexTemp = (char *) 0;
+    char *szTweakHex = (char *) 0;
+
+    if (jsPublicKeyHex) {
+        szPublicKeyHexTemp = (char *) env->GetStringUTFChars(jsPublicKeyHex, 0);
+        if (!szPublicKeyHexTemp) {
+            return env->NewStringUTF("Invalid private key error!");
+        }
+    }
+
+    int publicKeyLen = strlen(szPublicKeyHexTemp);
+    char szPublicKeyHex[publicKeyLen + 1];
+    strcpy(szPublicKeyHex, (const char *) szPublicKeyHexTemp);
+
+    if (jsTweakHex) {
+        szTweakHex = (char *) env->GetStringUTFChars(jsTweakHex, 0);
+        if (!szTweakHex) {
+            env->ReleaseStringUTFChars(jsPublicKeyHex, szPublicKeyHexTemp);
+            return env->NewStringUTF("Invalid tweak error!");
+        }
+    }
+
+    fast_crypto_secp256k1_ec_pubkey_tweak_add(szPublicKeyHex, szTweakHex, jiCompressed);
+    jstring out = env->NewStringUTF(szPublicKeyHex);
+    env->ReleaseStringUTFChars(jsPublicKeyHex, szPublicKeyHexTemp);
+    env->ReleaseStringUTFChars(jsTweakHex, szTweakHex);
+    return out;
+}
+
 }

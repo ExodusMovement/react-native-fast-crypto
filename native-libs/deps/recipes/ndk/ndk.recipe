@@ -29,7 +29,7 @@ task unzip-ndk download
 setup() {
     echo Unpacking toolchain...
     cd android-ndk-$version
-    python build/tools/make_standalone_toolchain.py --verbose --arch $1 --api 21 --stl libc++ --force --install-dir $work_dir/$1
+    python3 build/tools/make_standalone_toolchain.py --verbose --arch $1 --api 21 --stl libc++ --force --install-dir $work_dir/$1
 
     echo Patching headers...
     cat $recipe_dir/langinfo.h >> $work_dir/$1/sysroot/usr/local/include/langinfo.h

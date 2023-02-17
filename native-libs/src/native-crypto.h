@@ -50,6 +50,10 @@ void get_transaction_pool_hashes(const char *buffer, size_t length, char **pszRe
 
 void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, char **pszResult);
 
+void fast_crypto_secp256k1_ec_privkey_tweak_add(char *szPrivateKeyHex, const char *szTweak);
+void fast_crypto_secp256k1_ec_pubkey_tweak_add(char *szPublicKeyHex, const char *szTweak, int compressed);
+void fast_crypto_secp256k1_ec_pubkey_create(const char *szPrivateKeyHex, char *szPublicKeyHex, int compressed);
+
 #ifdef __cplusplus
 }
 #endif
