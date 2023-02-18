@@ -9,19 +9,6 @@ include_directories(${CMAKE_SOURCE_DIR}/../../../../android/jni/include)
 add_library(crypto_bridge SHARED
             crypto_bridge.cpp)
 
-add_library(
-  secp256k1
-  SHARED
-  IMPORTED
-)
-
-set_target_properties(
-  secp256k1
-  PROPERTIES
-  IMPORTED_LOCATION
-  ${CMAKE_SOURCE_DIR}/../../../../android/jni/libs/${ANDROID_ABI}/libsecp256k1.so
-)
-
 add_library(nativecrypto
              SHARED
              IMPORTED)
@@ -31,5 +18,5 @@ set_target_properties(nativecrypto
                        ${INSTALL_DIR}/lib/libnativecrypto.so)
 
 # Include libraries needed for crypto_bridge lib
-target_link_libraries(crypto_bridge nativecrypto secp256k1 android log)
+target_link_libraries(crypto_bridge nativecrypto android log)
 
