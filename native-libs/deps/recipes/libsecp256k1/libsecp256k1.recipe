@@ -1,10 +1,8 @@
 inherit lib
 
-source="https://github.com/bitcoin-core/secp256k1.git#84973d393ac240a90b2e1a6538c5368202bc2224"
+source="https://github.com/bitcoin-core/secp256k1.git#21ffe4b22a9683cf24ae0763359e401d1284cc7a"
 
 build() {
-    # Optimize:
-    patch -p1 < $recipe_dir/optimize.patch
     export ZERO_AR_DATE=1
 
     # Build:
