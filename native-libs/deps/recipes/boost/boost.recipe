@@ -42,6 +42,7 @@ build_bjam() {
 
 build() {
     LIBRARIES=--with-libraries=system,thread,regex
+    WITH_BJAM=
 
     cd boost_$version
 
@@ -53,14 +54,19 @@ build() {
     fi
     cp $recipe_dir/user-config.jam tools/build/src/user-config.jam
 
-    build_bjam
+    B2=b2
+    if [ Darwin = $(uname -s) ]; then
+        build_bjam
+        B2=bjam
+        WITH_BJAM=--with-bjam=bjam
+    fi
 
     echo Bootstrapping boost...
-    ./bootstrap.sh --prefix=$install_dir --with-bjam=bjam $LIBRARIES
+    ./bootstrap.sh --prefix=$install_dir $WITH_BJAM $LIBRARIES
 
     echo Building boost...
     export NO_BZIP2=1
-    ./bjam -q -d+2 toolset=gcc-env link=static threading=multi install
+    ./$B2 -q -d+2 toolset=gcc-env link=static threading=multi install
 }
 
 include="include/boost/*"
