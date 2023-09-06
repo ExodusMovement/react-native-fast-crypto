@@ -65,3 +65,5 @@ git clone git@github.com:ExodusMovement/react-native-fast-crypto.git /tmp/react-
 cd /tmp/react-native-fast-crypto
 yarn build
 ```
+
+(if you're building on Apple arm, M1 & M2, you can use `arch -x86_64 yarn build` instead of `yarn build`)
