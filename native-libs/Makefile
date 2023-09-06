@@ -11,6 +11,7 @@ LIBS := -lmymonerocorecpp \
 	-lboost_thread \
 	-lboost_system \
 	-lboost_regex \
+	-lsecp256k1 \
 	-lm
 
 # Do not use -lpthread on Android:
