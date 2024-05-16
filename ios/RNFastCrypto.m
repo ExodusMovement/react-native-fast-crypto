@@ -94,10 +94,10 @@
     [task resume];
 }
 
-+ (void) handleDownloadAndProcessWithClarity:(NSString*) method
-                                 :(NSString*) params
-                                 :(RCTPromiseResolveBlock) resolve
-                                 :(RCTPromiseRejectBlock) reject {
++ (void) handleDownloadFromClarityAndProcess:(NSString*) method
+                                            :(NSString*) params
+                                            :(RCTPromiseResolveBlock) resolve
+                                            :(RCTPromiseRejectBlock) reject {
 
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
@@ -176,7 +176,7 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
     if ([method isEqualToString:@"download_and_process"]) {
         [RNFastCrypto handleDownloadAndProcess:method :params :resolve :reject];
     } else if ([method isEqualToString:@"download_from_clarity_and_process"]) {
-        [RNFastCrypto handleDownloadAndProcessWithClarity:method :params :resolve :reject];
+        [RNFastCrypto handleDownloadFromClarityAndProcess:method :params :resolve :reject];
     } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
     } else {

@@ -84,9 +84,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             try {
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
-                int startHeight = params.getInt("start_height");
                 ByteBuffer requestBuffer = ByteBuffer.allocateDirect(1000);
-                int requestLength = moneroCoreCreateRequest(requestBuffer, startHeight);
                 URL url = new URL(addr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
