@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <curl/curl.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -58,14 +59,15 @@ void test_decompress() {
     file.seekg(0, std::ios::beg);
 
     // Read the file into a vector<char>
-    std::vector<char> buffer(fileSize);
-    if (!file.read(buffer.data(), fileSize)) {
+    char *buffer = new char[fileSize];
+    if (!file.read(buffer, fileSize)) {
         throw std::runtime_error("Failed to read file");
     }
 
     size_t length = 0;
-    std::string decompressedData = serial_bridge::decompress(buffer.data(), buffer.size());
-    std::cout << "Decompressed data: " << decompressedData << std::endl;
+    std::string decompressedData = serial_bridge::decompress(buffer, fileSize);
+
+    delete[] buffer;
 }
 
 void test_decode_with_clarity() {
@@ -79,8 +81,8 @@ void test_decode_with_clarity() {
     file.seekg(0, std::ios::beg);
 
     // Read the file into a vector<char>
-    std::vector<char> buffer(fileSize);
-    if (!file.read(buffer.data(), fileSize)) {
+    char *buffer = new char[fileSize];
+    if (!file.read(buffer, fileSize)) {
         throw std::runtime_error("Failed to read file");
     }
 
@@ -89,15 +91,66 @@ void test_decode_with_clarity() {
     paramsStream << paramsFile.rdbuf();
     std::string params = paramsStream.str();
 
+    auto resp = serial_bridge::extract_data_from_clarity_blocks_response_str(buffer, fileSize, params);
+    std::cout << resp << '\n';
+
+    delete[] buffer;
+}
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+    std::vector<char>* buffer = (std::vector<char>*)userp;
+    const char* data = (const char*)contents;
+    buffer->insert(buffer->end(), data, data + size * nmemb);  // Append data to vector
+    return size * nmemb;
+}
+
+bool downloadFile(const std::string& url, std::vector<char>& buffer) {
+    CURL *curl;
+    CURLcode res;
+    curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        return (res == CURLE_OK);
+    }
+    curl_easy_cleanup(curl);  // Clean up even if curl_easy_init fails
+    return false;
+}
+
+void test_full_flow_with_clarity() {
+    std::string url = "https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/3148308.json.gzip"; 
+    std::vector<char> buffer;
+
+    downloadFile(url, buffer);
+    if (!downloadFile(url, buffer)) {
+        std::cerr << "Failed to download file\n";
+        return;
+    }
+
+    std::ifstream paramsFile("test/input.json");
+    if (!paramsFile) {
+        std::cerr << "Failed to open parameter file\n";
+        return;
+    }
+
+    std::stringstream paramsStream;
+    paramsStream << paramsFile.rdbuf();
+    std::string params = paramsStream.str();
+
     auto resp = serial_bridge::extract_data_from_clarity_blocks_response_str(buffer.data(), buffer.size(), params);
     std::cout << resp << '\n';
+    return;
 }
 
 int main() {
     test_encode();
-    // test_decode();
-    // test_decompress();
-    test_decode_with_clarity();
+    test_decode();
+    test_decompress();
+    // test_decode_with_clarity();
+    test_full_flow_with_clarity();
 
     return 0;
 }

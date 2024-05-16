@@ -104,14 +104,18 @@
     NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
     
     if (jsonError) {
-        resolve(@"{\"err_msg\":\"Failed to parse JSON parameters\"}");
+        NSString *errorJSON = @"{\"err_msg\":\"Failed to parse JSON parameters\"}";
+        resolve(errorJSON);
         return;
     }
 
     NSString *addr = jsonParams[@"url"];
-    NSString *startHeight = jsonParams[@"start_height"];
-
     NSURL *url = [NSURL URLWithString:addr];
+    if (!url) {
+        NSString *errorJSON = @"{\"err_msg\":\"Invalid URL provided\"}";
+        resolve(errorJSON);
+        return;
+    }
 
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     [urlRequest setHTTPMethod:@"GET"];
@@ -128,8 +132,8 @@
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
         if (httpResponse.statusCode != 200) {
             NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
-            NSString *jsonString = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
-            resolve(jsonString);
+            NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
+            resolve(errorJSON);
             return;
         }
 

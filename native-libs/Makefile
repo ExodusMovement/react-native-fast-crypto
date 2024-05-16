@@ -11,7 +11,8 @@ LIBS := -lmymonerocorecpp \
 	-lboost_thread \
 	-lboost_system \
 	-lboost_regex \
-	-lm
+	-lm \
+	-lcurl
 
 # Do not use -lpthread on Android:
 ifneq (,$(findstring android,$(CC)))
