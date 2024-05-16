@@ -24,7 +24,7 @@ endif
 T ?= 0
 ifeq ($T, 1)
 	CXXFLAGS += -I$(PREFIX)/native/include
-	LDFLAGS += -L$(PREFIX)/native/lib
+	LDFLAGS += -L$(PREFIX)/native/lib -lz
 
 	ifeq ($(shell uname -s),Linux)
 		LIBS += -lbsd

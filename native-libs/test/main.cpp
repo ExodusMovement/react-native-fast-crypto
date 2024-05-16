@@ -47,8 +47,57 @@ void test_decode() {
     delete[] input;
 }
 
+void test_decompress() {
+    std::ifstream file("test/blocks.json.gzip", std::ios::binary | std::ios::ate);
+    if (!file) {
+        throw std::runtime_error("Failed to open file");
+    }
+
+    file.seekg(0, std::ios::end);
+    size_t fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // Read the file into a vector<char>
+    std::vector<char> buffer(fileSize);
+    if (!file.read(buffer.data(), fileSize)) {
+        throw std::runtime_error("Failed to read file");
+    }
+
+    size_t length = 0;
+    std::string decompressedData = serial_bridge::decompress(buffer.data(), buffer.size());
+    std::cout << "Decompressed data: " << decompressedData << std::endl;
+}
+
+void test_decode_with_clarity() {
+    std::ifstream file("test/blocks.json.gzip", std::ios::binary | std::ios::ate);
+    if (!file) {
+        throw std::runtime_error("Failed to open file");
+    }
+
+    file.seekg(0, std::ios::end);
+    size_t fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // Read the file into a vector<char>
+    std::vector<char> buffer(fileSize);
+    if (!file.read(buffer.data(), fileSize)) {
+        throw std::runtime_error("Failed to read file");
+    }
+
+    std::ifstream paramsFile("test/input.json");
+    std::stringstream paramsStream;
+    paramsStream << paramsFile.rdbuf();
+    std::string params = paramsStream.str();
+
+    auto resp = serial_bridge::extract_data_from_clarity_blocks_response_str(buffer.data(), buffer.size(), params);
+    std::cout << resp << '\n';
+}
+
 int main() {
-    test_decode();
+    test_encode();
+    // test_decode();
+    // test_decompress();
+    test_decode_with_clarity();
 
     return 0;
 }

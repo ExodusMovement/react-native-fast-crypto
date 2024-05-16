@@ -73,6 +73,7 @@
     [urlRequest setHTTPMethod:@"POST"];
     [urlRequest setHTTPBody:binaryData];
     [urlRequest setTimeoutInterval: 4 * 60];
+    [urlRequest setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
 
     NSURLSession *session = [NSURLSession sharedSession];
 
@@ -85,6 +86,56 @@
         char *pszResult = NULL;
 
         extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+
+        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+        free(pszResult);
+        resolve(jsonResult);
+    }];
+    [task resume];
+}
+
++ (void) handleDownloadAndProcessWithClarity:(NSString*) method
+                                 :(NSString*) params
+                                 :(RCTPromiseResolveBlock) resolve
+                                 :(RCTPromiseRejectBlock) reject {
+
+    NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *jsonError;
+    NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
+    
+    if (jsonError) {
+        resolve(@"{\"err_msg\":\"Failed to parse JSON parameters\"}");
+        return;
+    }
+
+    NSString *addr = jsonParams[@"url"];
+    NSString *startHeight = jsonParams[@"start_height"];
+
+    NSURL *url = [NSURL URLWithString:addr];
+
+    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+    [urlRequest setHTTPMethod:@"GET"];
+    [urlRequest setTimeoutInterval: 4 * 60];
+
+    NSURLSession *session = [NSURLSession sharedSession];
+
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+            return;
+        }
+
+        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+        if (httpResponse.statusCode != 200) {
+            NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
+            NSString *jsonString = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
+            resolve(jsonString);
+            return;
+        }
+
+        char *pszResult = NULL;
+
+        extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
         NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
         free(pszResult);
@@ -120,6 +171,8 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
 {
     if ([method isEqualToString:@"download_and_process"]) {
         [RNFastCrypto handleDownloadAndProcess:method :params :resolve :reject];
+    } else if ([method isEqualToString:@"download_from_clarity_and_process"]) {
+        [RNFastCrypto handleDownloadAndProcessWithClarity:method :params :resolve :reject];
     } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
     } else {
