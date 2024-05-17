@@ -36,6 +36,8 @@ set(
     #src/index.cpp
     #
     ${MYMONERO_CORE_CPP_SRC}/main.cpp
+    ${MYMONERO_CORE_CPP_SRC}/extend_helpers.cpp
+    ${MYMONERO_CORE_CPP_SRC}/extend_helpers.hpp
     ${MYMONERO_CORE_CPP_SRC}/monero_address_utils.hpp
     ${MYMONERO_CORE_CPP_SRC}/monero_address_utils.cpp
     ${MYMONERO_CORE_CPP_SRC}/monero_paymentID_utils.hpp
@@ -56,8 +58,6 @@ set(
     ${MYMONERO_CORE_CPP_SRC}/serial_bridge_index.cpp
     ${MYMONERO_CORE_CPP_SRC}/serial_bridge_utils.hpp
     ${MYMONERO_CORE_CPP_SRC}/serial_bridge_utils.cpp
-    ${MYMONERO_CORE_CPP_SRC}/extend_helpers.cpp
-    ${MYMONERO_CORE_CPP_SRC}/extend_helpers.hpp
     ${MYMONERO_CORE_CPP_SRC}/tools__ret_vals.hpp
     ${MYMONERO_CORE_CPP_SRC}/tools__ret_vals.cpp
     #
