@@ -16,7 +16,7 @@ void test_encode() {
     size_t length = 0;
     const char *body = serial_bridge::create_blocks_request(1573230, &length);
 
-    std::ofstream out("test/req.bin", std::ios::binary);
+    std::ofstream out("test/output/req.bin", std::ios::binary);
     out.write(body, length);
 
     out.close();
@@ -25,7 +25,7 @@ void test_encode() {
 }
 
 void test_decode() {
-    std::ifstream in("test/d.bin", std::ios::binary | std::ios::ate);
+    std::ifstream in("test/input/d.bin", std::ios::binary | std::ios::ate);
     if (!in) {
         std::cout << "No file\n";
         return;
@@ -37,7 +37,7 @@ void test_decode() {
     in.read(input, size);
     std::string m_body(input, size);
 
-    std::ifstream paramsFile("test/input.json");
+    std::ifstream paramsFile("test/input/input.json");
     std::stringstream paramsStream;
     paramsStream << paramsFile.rdbuf();
     std::string params = paramsStream.str();
@@ -49,7 +49,7 @@ void test_decode() {
 }
 
 void test_decompress() {
-    std::ifstream file("test/blocks.json.gzip", std::ios::binary | std::ios::ate);
+    std::ifstream file("test/input/blocks.json.gzip", std::ios::binary | std::ios::ate);
     if (!file) {
         throw std::runtime_error("Failed to open file");
     }
@@ -71,7 +71,7 @@ void test_decompress() {
 }
 
 void test_decode_with_clarity() {
-    std::ifstream file("test/blocks.json.gzip", std::ios::binary | std::ios::ate);
+    std::ifstream file("test/input/blocks.json.gzip", std::ios::binary | std::ios::ate);
     if (!file) {
         throw std::runtime_error("Failed to open file");
     }
@@ -130,7 +130,7 @@ void test_full_flow_with_clarity() {
         return;
     }
 
-    std::ifstream paramsFile("test/input.json");
+    std::ifstream paramsFile("test/input/input.json");
     if (!paramsFile) {
         std::cerr << "Failed to open parameter file\n";
         return;
