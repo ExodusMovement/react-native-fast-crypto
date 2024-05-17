@@ -124,11 +124,13 @@ void test_full_flow_with_clarity() {
     std::string url = "https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/3148308.json.gzip"; 
     std::vector<char> buffer;
 
+    std::cout << "Start download blocks file" << '\n';
     downloadFile(url, buffer);
     if (!downloadFile(url, buffer)) {
-        std::cerr << "Failed to download file\n";
+        std::cerr << "Failed to download blocks file\n";
         return;
     }
+    std::cout << "Done download file" << '\n';
 
     std::ifstream paramsFile("test/input/input.json");
     if (!paramsFile) {
