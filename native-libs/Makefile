@@ -11,7 +11,8 @@ LIBS := -lmymonerocorecpp \
 	-lboost_thread \
 	-lboost_system \
 	-lboost_regex \
-	-lm
+	-lm \
+    -lz  # Adding zlib explicitly
 
 # Do not use -lpthread on Android:
 ifneq (,$(findstring android,$(CC)))
@@ -24,7 +25,7 @@ endif
 T ?= 0
 ifeq ($T, 1)
 	CXXFLAGS += -I$(PREFIX)/native/include
-	LDFLAGS += -L$(PREFIX)/native/lib
+	LDFLAGS += -L$(PREFIX)/native/lib -lz -lcurl
 
 	ifeq ($(shell uname -s),Linux)
 		LIBS += -lbsd

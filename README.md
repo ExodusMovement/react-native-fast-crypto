@@ -49,7 +49,7 @@ This library implements fast, fully native crypto routines for React Native unde
 sudo xcode-select --switch /Applications/Xcode.app
 sudo xcodebuild -license
 
-brew install autoconf automake cmake git pkgconfig protobuf python
+brew install autoconf automake cmake git pkgconfig protobuf python zlib
 
 sudo mkdir -p /usr/local/bin
 sudo ln -sf $(brew --prefix python)/bin/python3 /usr/local/bin/python

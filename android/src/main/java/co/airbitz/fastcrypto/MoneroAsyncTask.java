@@ -40,6 +40,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     public native String moneroCoreJNI(String method, String jsonParams);
     public native int moneroCoreCreateRequest(ByteBuffer requestBuffer, int height);
     public native String extractUtxosFromBlocksResponse(ByteBuffer buffer, String jsonParams);
+    public native String extractUtxosFromClarityBlocksResponse(ByteBuffer buffer, String jsonParams);
     public native String getTransactionPoolHashes(ByteBuffer buffer);
 
     @Override
@@ -74,6 +75,38 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     responseBuffer.put(bytes, 0, responseLength);
                     String out = extractUtxosFromBlocksResponse(responseBuffer, jsonParams);
                     promise.resolve(out);
+                }
+            } catch (Exception e) {
+                promise.reject("Err", e);
+            }
+            return null;
+        } else if (method.equals("download_from_clarity_and_process")) {
+            try {
+                JSONObject params = new JSONObject(jsonParams);
+                String addr = params.getString("url");
+                ByteBuffer requestBuffer = ByteBuffer.allocateDirect(1000);
+                URL url = new URL(addr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("User-Agent", userAgent);
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(4 * 60 * 1000);
+
+                connection.connect();
+
+                String contentLength = connection.getHeaderField("Content-Length");
+                int responseLength = contentLength != null ? Integer.parseInt(contentLength) : 0;
+                if (responseLength > 0) {
+                    try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
+                        byte[] bytes = new byte[responseLength];
+                        dataInputStream.readFully(bytes);
+                        ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
+                        responseBuffer.put(bytes, 0, responseLength);
+                        String out = extractUtxosFromClarityBlocksResponse(responseBuffer, jsonParams);
+                        promise.resolve(out);
+                    }
+                } else {
+                    promise.reject("Err", new Exception("Invalid or no content length"));
                 }
             } catch (Exception e) {
                 promise.reject("Err", e);
