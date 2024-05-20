@@ -46,6 +46,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... voids) {
         if (method.equals("download_and_process")) {
+            HttpURLConnection connection = null;
             try {
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
@@ -53,7 +54,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 ByteBuffer requestBuffer = ByteBuffer.allocateDirect(1000);
                 int requestLength = moneroCoreCreateRequest(requestBuffer, startHeight);
                 URL url = new URL(addr);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/octet-stream");
                 connection.setRequestProperty("User-Agent", userAgent);
@@ -78,15 +79,19 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 }
             } catch (Exception e) {
                 promise.reject("Err", e);
+            }  finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
             }
             return null;
         } else if (method.equals("download_from_clarity_and_process")) {
+            HttpURLConnection connection = null;
             try {
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
-                ByteBuffer requestBuffer = ByteBuffer.allocateDirect(1000);
                 URL url = new URL(addr);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setRequestProperty("User-Agent", userAgent);
                 connection.setConnectTimeout(10000);
@@ -110,6 +115,10 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 }
             } catch (Exception e) {
                 promise.reject("Err", e);
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
             }
             return null;
         } else if (method.equals("get_transaction_pool_hashes")) {

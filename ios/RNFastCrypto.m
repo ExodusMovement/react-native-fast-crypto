@@ -111,11 +111,6 @@
 
     NSString *addr = jsonParams[@"url"];
     NSURL *url = [NSURL URLWithString:addr];
-    if (!url) {
-        NSString *errorJSON = @"{\"err_msg\":\"Invalid URL provided\"}";
-        resolve(errorJSON);
-        return;
-    }
 
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     [urlRequest setHTTPMethod:@"GET"];
