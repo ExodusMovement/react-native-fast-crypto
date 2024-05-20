@@ -108,7 +108,11 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                         ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
                         responseBuffer.put(bytes, 0, responseLength);
                         String out = extractUtxosFromClarityBlocksResponse(responseBuffer, jsonParams);
-                        promise.resolve(out);
+                        if (out == null) {
+                            promise.reject("Err", new Exception("Internal error: Memory allocation failed"));
+                        } else {
+                            promise.resolve(out);
+                        }
                     }
                 } else {
                     promise.reject("Err", new Exception("Invalid or no content length"));

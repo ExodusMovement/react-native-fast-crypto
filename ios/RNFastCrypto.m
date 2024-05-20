@@ -136,6 +136,12 @@
 
         extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
+        if (pszResult == NULL) {
+            NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+            resolve(errorJSON);
+            return;
+        }
+
         NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
         free(pszResult);
         resolve(jsonResult);

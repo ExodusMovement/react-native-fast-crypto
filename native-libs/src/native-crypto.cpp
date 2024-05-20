@@ -27,6 +27,11 @@ void extract_utxos_from_blocks_response(const char *buffer, size_t length, const
 
     int size = result.length() + 1;
     *pszResult = (char *) malloc(sizeof(char) * size);
+    if (*pszResult == nullptr) {
+        // Memory allocation failed
+        return;
+    }
+    
     memcpy(*pszResult, result.c_str(), result.length() + 1);
 }
 
@@ -36,6 +41,12 @@ void extract_utxos_from_clarity_blocks_response(const char *buffer, size_t lengt
 
     int size = result.length() + 1;
     *pszResult = (char *) malloc(sizeof(char) * size);
+    
+    if (*pszResult == nullptr) {
+        // Memory allocation failed
+        return;
+    }
+    
     memcpy(*pszResult, result.c_str(), result.length() + 1);
 }
 
