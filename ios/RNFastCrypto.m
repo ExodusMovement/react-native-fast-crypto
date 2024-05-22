@@ -111,11 +111,6 @@
 
     NSString *addr = jsonParams[@"url"];
     NSURL *url = [NSURL URLWithString:addr];
-    if (!url) {
-        NSString *errorJSON = @"{\"err_msg\":\"Invalid URL provided\"}";
-        resolve(errorJSON);
-        return;
-    }
 
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
     [urlRequest setHTTPMethod:@"GET"];
@@ -140,6 +135,12 @@
         char *pszResult = NULL;
 
         extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+
+        if (pszResult == NULL) {
+            NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+            resolve(errorJSON);
+            return;
+        }
 
         NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
         free(pszResult);

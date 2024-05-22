@@ -55,6 +55,14 @@ Java_co_airbitz_fastcrypto_MoneroAsyncTask_extractUtxosFromBlocksResponse(JNIEnv
 
     char *szResultHex = NULL;
     extract_utxos_from_blocks_response(data, length, szJsonParams, &szResultHex);
+
+    // Free dynamically allocated memory to avoid memory leaks.
+    env->ReleaseStringUTFChars(jsJsonParams, szJsonParams);
+    
+    if (szResultHex == nullptr) {
+        return nullptr;
+    }
+
     jstring out = env->NewStringUTF(szResultHex);
     free(szResultHex);
 
@@ -69,6 +77,14 @@ Java_co_airbitz_fastcrypto_MoneroAsyncTask_extractUtxosFromClarityBlocksResponse
 
     char *szResultHex = NULL;
     extract_utxos_from_clarity_blocks_response(data, length, szJsonParams, &szResultHex);
+
+    // Free dynamically allocated memory to avoid memory leaks.
+    env->ReleaseStringUTFChars(jsJsonParams, szJsonParams);
+
+    if (szResultHex == nullptr) {
+        return nullptr;
+    }
+
     jstring out = env->NewStringUTF(szResultHex);
     free(szResultHex);
 
