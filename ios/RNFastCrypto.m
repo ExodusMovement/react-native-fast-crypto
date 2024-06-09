@@ -3,6 +3,7 @@
 #import "native-crypto.h"
 #import "NSArray+Map.h"
 #import <Foundation/Foundation.h>
+#import <Sentry/Sentry.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -53,6 +54,7 @@
                                  :(NSString*) params
                                  :(RCTPromiseResolveBlock) resolve
                                  :(RCTPromiseRejectBlock) reject {
+    SentryTransaction *transaction = [SentrySDK startTransactionWithName:@"handleDownloadAndProcess" operation:@"task"];
 
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
@@ -61,10 +63,12 @@
     NSString *addr = jsonParams[@"url"];
     NSString *startHeight = jsonParams[@"start_height"];
 
+    SentrySpan *paramSpan = [transaction startChildWithOperation:@"create-blocks-request" description:@"Create blocks request"];
 
     size_t length = 0;
     const char *m_body = create_blocks_request([startHeight intValue], &length);
-
+    [paramSpan finish];
+    
     NSURL *url = [NSURL URLWithString:addr];
     NSData *binaryData = [NSData dataWithBytes:m_body length:length];
     free((void *)m_body);
@@ -76,20 +80,27 @@
     [urlRequest setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
 
     NSURLSession *session = [NSURLSession sharedSession];
+    SentrySpan *networkSpan = [transaction startChildWithOperation:@"http-request" description:@"Download data from Clarity"];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
             resolve(@"{\"err_msg\":\"Network request failed\"}");
+            [networkSpan finishWithStatus:kSentrySpanStatusInternalError];
+            [transaction finishWithStatus:kSentrySpanStatusInternalError];
             return;
         }
 
         char *pszResult = NULL;
+
+        SentrySpan *extractUtxosSpan = [transaction startChildWithOperation:@"process-response" description:@"Extract UTXOs from response"];
 
         extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
         NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
         free(pszResult);
         resolve(jsonResult);
+        [extractUtxosSpan finish];
+        [transaction finish];
     }];
     [task resume];
 }
@@ -98,7 +109,8 @@
                                             :(NSString*) params
                                             :(RCTPromiseResolveBlock) resolve
                                             :(RCTPromiseRejectBlock) reject {
-
+    SentryTransaction *transaction = [SentrySDK startTransactionWithName:@"handleDownloadFromClarityAndProcess" operation:@"task"];
+                                            
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
     NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
@@ -106,6 +118,7 @@
     if (jsonError) {
         NSString *errorJSON = @"{\"err_msg\":\"Failed to parse JSON parameters\"}";
         resolve(errorJSON);
+        [transaction finishWithStatus:kSentrySpanStatusInvalidArgument];
         return;
     }
 
@@ -118,9 +131,13 @@
 
     NSURLSession *session = [NSURLSession sharedSession];
 
+    SentrySpan *networkSpan = [transaction startChildWithOperation:@"http-request" description:@"Download data from Clarity"];
+
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
             resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+            [networkSpan finishWithStatus:kSentrySpanStatusInternalError];
+            [transaction finishWithStatus:kSentrySpanStatusInternalError];
             return;
         }
 
@@ -129,22 +146,30 @@
             NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
             NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
             resolve(errorJSON);
+            [networkSpan setStatus:kSentrySpanStatusNotFound];
+            [networkSpan finish];
+            [transaction finishWithStatus:kSentrySpanStatusNotFound];
             return;
         }
 
         char *pszResult = NULL;
 
+        SentrySpan *extractUtxosSpan = [transaction startChildWithOperation:@"process-response" description:@"Extract UTXOs from Clarity response"];
         extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
         if (pszResult == NULL) {
             NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
             resolve(errorJSON);
+            [extractUtxosSpan finishWithStatus:kSentrySpanStatusResourceExhausted];
+            [transaction finishWithError:nil];
             return;
         }
 
         NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
         free(pszResult);
         resolve(jsonResult);
+        [extractUtxosSpan finish];
+        [transaction finish];
     }];
     [task resume];
 }
