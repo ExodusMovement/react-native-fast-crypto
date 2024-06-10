@@ -54,7 +54,7 @@
                                  :(NSString*) params
                                  :(RCTPromiseResolveBlock) resolve
                                  :(RCTPromiseRejectBlock) reject {
-    SentryTransaction *transaction = [SentrySDK startTransactionWithName:@"handleDownloadAndProcess" operation:@"task"];
+    id<SentrySpan> transaction = [SentrySDK startTransactionWithName:@"handleDownloadAndProcess" operation:@"task"];
 
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
@@ -80,11 +80,12 @@
     [urlRequest setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
 
     NSURLSession *session = [NSURLSession sharedSession];
-    SentrySpan *networkSpan = [transaction startChildWithOperation:@"http-request" description:@"Download data from Clarity"];
+    id<SentrySpan> networkSpan = [transaction startChildWithOperation:@"http-request" description:@"Download data from Clarity"];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
             resolve(@"{\"err_msg\":\"Network request failed\"}");
+            [SentrySDK captureError:error];
             [networkSpan finishWithStatus:kSentrySpanStatusInternalError];
             [transaction finishWithStatus:kSentrySpanStatusInternalError];
             return;
@@ -92,7 +93,7 @@
 
         char *pszResult = NULL;
 
-        SentrySpan *extractUtxosSpan = [transaction startChildWithOperation:@"process-response" description:@"Extract UTXOs from response"];
+        id<SentrySpan> extractUtxosSpan = [transaction startChildWithOperation:@"process-response" description:@"Extract UTXOs from response"];
 
         extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
@@ -109,7 +110,7 @@
                                             :(NSString*) params
                                             :(RCTPromiseResolveBlock) resolve
                                             :(RCTPromiseRejectBlock) reject {
-    SentryTransaction *transaction = [SentrySDK startTransactionWithName:@"handleDownloadFromClarityAndProcess" operation:@"task"];
+    id<SentrySpan> transaction = [SentrySDK startTransactionWithName:@"handleDownloadFromClarityAndProcess" operation:@"task"];
                                             
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
@@ -131,11 +132,12 @@
 
     NSURLSession *session = [NSURLSession sharedSession];
 
-    SentrySpan *networkSpan = [transaction startChildWithOperation:@"http-request" description:@"Download data from Clarity"];
+    id<SentrySpan> networkSpan = [transaction startChildWithOperation:@"http-request" description:@"Download data from Clarity"];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
             resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+            [SentrySDK captureError:error];
             [networkSpan finishWithStatus:kSentrySpanStatusInternalError];
             [transaction finishWithStatus:kSentrySpanStatusInternalError];
             return;
@@ -154,7 +156,7 @@
 
         char *pszResult = NULL;
 
-        SentrySpan *extractUtxosSpan = [transaction startChildWithOperation:@"process-response" description:@"Extract UTXOs from Clarity response"];
+        id<SentrySpan> extractUtxosSpan = [transaction startChildWithOperation:@"process-response" description:@"Extract UTXOs from Clarity response"];
         extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
         if (pszResult == NULL) {
