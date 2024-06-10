@@ -63,7 +63,7 @@
     NSString *addr = jsonParams[@"url"];
     NSString *startHeight = jsonParams[@"start_height"];
 
-    id<SentrySpan> *paramSpan = [transaction startChildWithOperation:@"create-blocks-request" description:@"Create blocks request"];
+    id<SentrySpan> paramSpan = [transaction startChildWithOperation:@"create-blocks-request" description:@"Create blocks request"];
 
     size_t length = 0;
     const char *m_body = create_blocks_request([startHeight intValue], &length);
@@ -163,7 +163,7 @@
             NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
             resolve(errorJSON);
             [extractUtxosSpan finishWithStatus:kSentrySpanStatusResourceExhausted];
-            [transaction finishWithError:nil];
+            [transaction finishWithStatus:kSentrySpanStatusResourceExhausted];
             return;
         }
 
