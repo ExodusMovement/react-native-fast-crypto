@@ -16,6 +16,14 @@
     return dispatch_queue_create("io.exodus.RNFastCrypto.MainQueue", qosAttribute);
 }
 
+[SentrySDK startWithConfigureOptions:^(SentryOptions * options) {
+    options.Dsn = @"https://e7cb4627330d3f01bc2343ae90c2d187@o4507402863771648.ingest.us.sentry.io/4507402865803264";
+
+    // Example uniform sample rate: capture 100% of transactions
+    // In Production you will probably want a smaller number such as 0.5 for 50%
+    options.tracesSampleRate = @1.0;
+}];
+
 + (void) handleGetTransactionPoolHashes:(NSString*) method
                                        :(NSString*) params
                                        :(RCTPromiseResolveBlock) resolve
