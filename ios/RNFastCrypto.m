@@ -16,13 +16,20 @@
     return dispatch_queue_create("io.exodus.RNFastCrypto.MainQueue", qosAttribute);
 }
 
-[SentrySDK startWithConfigureOptions:^(SentryOptions * options) {
-    options.Dsn = @"https://e7cb4627330d3f01bc2343ae90c2d187@o4507402863771648.ingest.us.sentry.io/4507402865803264";
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
-    // Example uniform sample rate: capture 100% of transactions
-    // In Production you will probably want a smaller number such as 0.5 for 50%
-    options.tracesSampleRate = @1.0;
-}];
+    [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
+        options.dsn = @"https://e7cb4627330d3f01bc2343ae90c2d187@o4507402863771648.ingest.us.sentry.io/4507402865803264";
+        options.debug = YES; // Enabled debug when first installing is always helpful
+
+        // Enable tracing to capture 100% of transactions for performance monitoring.
+        // Use 'options.tracesSampleRate' to set the sampling rate.
+        // We recommend setting a sample rate in production.
+        options.enableTracing = YES;
+    }];
+
+    return YES;
+}
 
 + (void) handleGetTransactionPoolHashes:(NSString*) method
                                        :(NSString*) params
