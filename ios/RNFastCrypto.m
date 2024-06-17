@@ -9,6 +9,17 @@
 
 @implementation RNFastCrypto
 
+static dispatch_queue_t downloadQueue;
+static dispatch_queue_t extractUtxosQueue;
+
++ (void)initialize {
+    if (self == [RNFastCrypto class]) {
+        // Initialize the static queues once
+        downloadQueue = dispatch_queue_create("io.exodus.RNFastCrypto.downloadQueue", DISPATCH_QUEUE_CONCURRENT);
+        extractUtxosQueue = dispatch_queue_create("io.exodus.RNFastCrypto.extractUtxos", DISPATCH_QUEUE_SERIAL);
+    }
+}
+
 - (dispatch_queue_t)methodQueue
 {
     dispatch_queue_attr_t qosAttribute = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_BACKGROUND, 0);
@@ -109,44 +120,54 @@
         return;
     }
 
-    NSString *addr = jsonParams[@"url"];
-    NSURL *url = [NSURL URLWithString:addr];
+    dispatch_async(downloadQueue, ^{
+        NSString *addr = jsonParams[@"url"];
+        NSURL *url = [NSURL URLWithString:addr];
 
-    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
-    [urlRequest setHTTPMethod:@"GET"];
-    [urlRequest setTimeoutInterval: 4 * 60];
+        NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+        [urlRequest setHTTPMethod:@"GET"];
+        [urlRequest setTimeoutInterval: 4 * 60];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+        NSURLSession *session = [NSURLSession sharedSession];
 
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
-            return;
-        }
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+                });
+                return;
+            }
 
-        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        if (httpResponse.statusCode != 200) {
-            NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
-            NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
-            resolve(errorJSON);
-            return;
-        }
+            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+            if (httpResponse.statusCode != 200) {
+                NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
+                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resolve(errorJSON);
+                });
+                return;
+            }
 
-        char *pszResult = NULL;
+            dispatch_async(extractUtxosQueue, ^{
+                char *pszResult = NULL;
 
-        extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+                extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
-        if (pszResult == NULL) {
-            NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
-            resolve(errorJSON);
-            return;
-        }
+                if (pszResult == NULL) {
+                    NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+                    resolve(errorJSON);
+                    return;
+                }
 
-        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
-        free(pszResult);
-        resolve(jsonResult);
-    }];
-    [task resume];
+                NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+                free(pszResult);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resolve(jsonResult);
+                });
+            });
+        }];
+        [task resume];
+    });
 }
 
 + (void) handleDefault:(NSString*) method

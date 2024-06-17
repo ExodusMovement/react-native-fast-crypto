@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
 
 public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
@@ -29,12 +30,14 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     private final String jsonParams;
     private final String userAgent;
     private final Promise promise;
+    private final ExecutorService processingFileExecutor;
 
-    public MoneroAsyncTask(String method, String jsonParams, String userAgent, Promise promise) {
+    public MoneroAsyncTask(String method, String jsonParams, String userAgent, Promise promise, ExecutorService processingFileExecutor) {
         this.method = method;
         this.jsonParams = jsonParams;
         this.userAgent = userAgent;
         this.promise = promise;
+        this.processingFileExecutor = processingFileExecutor;
     }
 
     public native String moneroCoreJNI(String method, String jsonParams);
@@ -107,12 +110,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                         dataInputStream.readFully(bytes);
                         ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
                         responseBuffer.put(bytes, 0, responseLength);
-                        String out = extractUtxosFromClarityBlocksResponse(responseBuffer, jsonParams);
-                        if (out == null) {
-                            promise.reject("Err", new Exception("Internal error: Memory allocation failed"));
-                        } else {
-                            promise.resolve(out);
-                        }
+                        processingFileExecutor.submit(() -> new ProcessFileAsyncTask(responseBuffer, jsonParams, promise).execute());
                     }
                 } else {
                     promise.reject("Err", new Exception("Invalid or no content length"));
