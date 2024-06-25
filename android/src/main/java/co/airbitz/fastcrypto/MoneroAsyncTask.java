@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
 
 public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
@@ -29,12 +30,15 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     private final String jsonParams;
     private final String userAgent;
     private final Promise promise;
+    private final ExecutorService processingFileExecutor;
+    private final AtomicBoolean shouldProcessTasks = new AtomicBoolean(true);
 
-    public MoneroAsyncTask(String method, String jsonParams, String userAgent, Promise promise) {
+    public MoneroAsyncTask(String method, String jsonParams, String userAgent, Promise promise, ExecutorService processingFileExecutor) {
         this.method = method;
         this.jsonParams = jsonParams;
         this.userAgent = userAgent;
         this.promise = promise;
+        this.processingFileExecutor = processingFileExecutor;
     }
 
     public native String moneroCoreJNI(String method, String jsonParams);
@@ -86,7 +90,13 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             }
             return null;
         } else if (method.equals("download_from_clarity_and_process")) {
+            if (!shouldProcessTasks.get()) {
+                promise.reject("Err", new Exception("Processing is currently stopped"));
+                return null;
+            }
+
             HttpURLConnection connection = null;
+            Future<?> future = null;
             try {
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
@@ -107,18 +117,22 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                         dataInputStream.readFully(bytes);
                         ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
                         responseBuffer.put(bytes, 0, responseLength);
-                        String out = extractUtxosFromClarityBlocksResponse(responseBuffer, jsonParams);
-                        if (out == null) {
-                            promise.reject("Err", new Exception("Internal error: Memory allocation failed"));
-                        } else {
-                            promise.resolve(out);
-                        }
+                        future = processingFileExecutor.submit(() -> {
+                            if (shouldProcessTasks.get()) {
+                                new ProcessFileAsyncTask(responseBuffer, jsonParams, promise).execute();
+                            } else {
+                                promise.reject("Err", new Exception("Processing was stopped before task execution"));
+                            }
+                        });
                     }
                 } else {
                     promise.reject("Err", new Exception("Invalid or no content length"));
                 }
             } catch (Exception e) {
                 promise.reject("Err", e);
+                if (future != null) {
+                    future.cancel(true);
+                }
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -157,7 +171,14 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 promise.reject("Err", e);
             }
             return null;
+        } else if (method.equals("start_processing_tasks")) {
+            startProcessingTasks();
+            promise.resolve(shouldProcessTasks.get());
+        } else if (method.equals("stop_processing_tasks")) {
+            stopProcessingTasks();
+            promise.resolve(shouldProcessTasks.get());
         }
+        
         try {
             String reply = moneroCoreJNI(method, jsonParams); // test response from JNI
             promise.resolve(reply);
@@ -165,5 +186,14 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             promise.reject("Err", e);
         }
         return null;
+    }
+
+    public void startProcessingTasks() {
+        shouldProcessTasks.set(true);
+    }
+
+    public void stopProcessingTasks() {
+        shouldProcessTasks.set(false);
+        processingFileExecutor.shutdownNow();
     }
 };

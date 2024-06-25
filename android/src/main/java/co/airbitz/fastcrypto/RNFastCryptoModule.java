@@ -7,16 +7,20 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class RNFastCryptoModule extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
     private final String userAgent;
+    private final ExecutorService processingFileExecutor;
 
     public RNFastCryptoModule(ReactApplicationContext reactContext, String userAgent) {
         super(reactContext);
         this.reactContext = reactContext;
         this.userAgent = userAgent;
+        this.processingFileExecutor = Executors.newSingleThreadExecutor();
     }
 
     @Override

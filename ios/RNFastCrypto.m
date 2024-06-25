@@ -9,6 +9,19 @@
 
 @implementation RNFastCrypto
 
+static dispatch_queue_t downloadQueue;
+static dispatch_queue_t extractUtxosQueue;
+__block BOOL shouldProcessTasks;
+
++ (void)initialize {
+    if (self == [RNFastCrypto class]) {
+        // Initialize the static queues once
+        downloadQueue = dispatch_queue_create("io.exodus.RNFastCrypto.downloadQueue", DISPATCH_QUEUE_CONCURRENT);
+        extractUtxosQueue = dispatch_queue_create("io.exodus.RNFastCrypto.extractUtxos", DISPATCH_QUEUE_SERIAL);
+        shouldProcessTasks = YES;
+    }
+}
+
 - (dispatch_queue_t)methodQueue
 {
     dispatch_queue_attr_t qosAttribute = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_BACKGROUND, 0);
@@ -109,44 +122,79 @@
         return;
     }
 
-    NSString *addr = jsonParams[@"url"];
-    NSURL *url = [NSURL URLWithString:addr];
-
-    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
-    [urlRequest setHTTPMethod:@"GET"];
-    [urlRequest setTimeoutInterval: 4 * 60];
-
-    NSURLSession *session = [NSURLSession sharedSession];
-
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+    dispatch_async(downloadQueue, ^{
+        if (!shouldProcessTasks) {
+            // Skip processing
             return;
         }
 
-        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        if (httpResponse.statusCode != 200) {
-            NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
-            NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
-            resolve(errorJSON);
-            return;
-        }
+        NSString *addr = jsonParams[@"url"];
+        NSURL *url = [NSURL URLWithString:addr];
 
-        char *pszResult = NULL;
+        NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+        [urlRequest setHTTPMethod:@"GET"];
+        [urlRequest setTimeoutInterval: 4 * 60];
 
-        extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+        NSURLSession *session = [NSURLSession sharedSession];
 
-        if (pszResult == NULL) {
-            NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
-            resolve(errorJSON);
-            return;
-        }
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+                });
+                return;
+            }
 
-        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
-        free(pszResult);
-        resolve(jsonResult);
-    }];
-    [task resume];
+            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+            if (httpResponse.statusCode != 200) {
+                NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
+                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resolve(errorJSON);
+                });
+                return;
+            }
+
+            dispatch_async(extractUtxosQueue, ^{
+                if (!shouldProcessTasks) {
+                    // Skip processing
+                    return;
+                }
+
+                char *pszResult = NULL;
+
+                extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+
+                if (pszResult == NULL) {
+                    NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+                    resolve(errorJSON);
+                    return;
+                }
+
+                NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+                free(pszResult);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resolve(jsonResult);
+                });
+            });
+
+        }];
+        [task resume];
+    });
+}
+
+
+// Function to start processing tasks
++ (void) startProcessingTasks() {
+    dispatch_barrier_async(downloadQueue, ^{
+        shouldProcessTasks = YES;
+    });
+}
+
++ (void)stopProcessingTasks {
+    dispatch_barrier_sync(downloadQueue, ^{
+        shouldProcessTasks = NO;
+    });
 }
 
 + (void) handleDefault:(NSString*) method
@@ -180,6 +228,10 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
         [RNFastCrypto handleDownloadFromClarityAndProcess:method :params :resolve :reject];
     } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
+    } else if ([method isEqualToString:@"start_processing_tasks"]) {
+        [RNFastCrypto startProcessingTasks];
+    } else if ([method isEqualToString:@"stop_processing_tasks"]) {
+        [RNFastCrypto stopProcessingTasks];
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
