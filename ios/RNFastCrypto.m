@@ -11,12 +11,14 @@
 
 static dispatch_queue_t downloadQueue;
 static dispatch_queue_t extractUtxosQueue;
+__block BOOL shouldProcessTasks;
 
 + (void)initialize {
     if (self == [RNFastCrypto class]) {
         // Initialize the static queues once
         downloadQueue = dispatch_queue_create("io.exodus.RNFastCrypto.downloadQueue", DISPATCH_QUEUE_CONCURRENT);
         extractUtxosQueue = dispatch_queue_create("io.exodus.RNFastCrypto.extractUtxos", DISPATCH_QUEUE_SERIAL);
+        shouldProcessTasks = YES;
     }
 }
 
@@ -121,6 +123,11 @@ static dispatch_queue_t extractUtxosQueue;
     }
 
     dispatch_async(downloadQueue, ^{
+        if (!shouldProcessTasks) {
+            // Skip processing
+            return;
+        }
+
         NSString *addr = jsonParams[@"url"];
         NSURL *url = [NSURL URLWithString:addr];
 
@@ -149,6 +156,11 @@ static dispatch_queue_t extractUtxosQueue;
             }
 
             dispatch_async(extractUtxosQueue, ^{
+                if (!shouldProcessTasks) {
+                    // Skip processing
+                    return;
+                }
+
                 char *pszResult = NULL;
 
                 extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
@@ -165,8 +177,23 @@ static dispatch_queue_t extractUtxosQueue;
                     resolve(jsonResult);
                 });
             });
+
         }];
         [task resume];
+    });
+}
+
+
+// Function to start processing tasks
++ (void) startProcessingTasks() {
+    dispatch_barrier_async(downloadQueue, ^{
+        shouldProcessTasks = YES;
+    });
+}
+
++ (void)stopProcessingTasks {
+    dispatch_barrier_sync(downloadQueue, ^{
+        shouldProcessTasks = NO;
     });
 }
 
@@ -201,6 +228,10 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
         [RNFastCrypto handleDownloadFromClarityAndProcess:method :params :resolve :reject];
     } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
+    } else if ([method isEqualToString:@"start_processing_tasks"]) {
+        [RNFastCrypto startProcessingTasks];
+    } else if ([method isEqualToString:@"stop_processing_tasks"]) {
+        [RNFastCrypto stopProcessingTasks];
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
