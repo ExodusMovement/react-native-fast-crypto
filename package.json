@@ -1,6 +1,6 @@
 {
   "name": "@exodus/react-native-fast-crypto",
-  "version": "18.1.1",
+  "version": "18.3.0-alpha.7",
   "description": "Native C/C++ implemented crypto libraries for React Native apps",
   "keywords": [
     "react-native",
