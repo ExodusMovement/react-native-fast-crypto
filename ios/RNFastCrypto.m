@@ -9,16 +9,80 @@
 
 @implementation RNFastCrypto
 
-static dispatch_queue_t downloadQueue;
-static dispatch_queue_t extractUtxosQueue;
-__block BOOL shouldProcessTasks;
+static NSOperationQueue *_downloadQueue = nil;
+static NSOperationQueue *_processingQueue = nil;
+static NSMutableArray *_downloadOperations = nil;
+static NSMutableArray *_downloadOrder = nil;
+static BOOL _shouldStopOperations = NO; 
 
-+ (void)initialize {
-    if (self == [RNFastCrypto class]) {
-        // Initialize the static queues once
-        downloadQueue = dispatch_queue_create("io.exodus.RNFastCrypto.downloadQueue", DISPATCH_QUEUE_CONCURRENT);
-        extractUtxosQueue = dispatch_queue_create("io.exodus.RNFastCrypto.extractUtxos", DISPATCH_QUEUE_SERIAL);
-        shouldProcessTasks = YES;
+
+- (instancetype)init 
+{
+    self = [super init];
+    if (self) {
+        _downloadQueue = [[NSOperationQueue alloc] init];
+        _downloadQueue.name = @"io.exodus.RNFastCrypto.downloadQueue";
+        _downloadQueue.maxConcurrentOperationCount = NSOperationQueueDefaultMaxConcurrentOperationCount; 
+
+        _processingQueue = [[NSOperationQueue alloc] init];
+        _processingQueue.name = @"io.exodus.RNFastCrypto.processingQueue";
+        _processingQueue.maxConcurrentOperationCount = 1;
+
+        _downloadOperations = [[NSMutableArray alloc] init];
+        _shouldStopOperations = NO;
+    }
+    return self;
+}
+
++ (BOOL)shouldStopOperations {
+    @synchronized(self) { // Ensure thread-safety when accessing _shouldStopOperations
+        return _shouldStopOperations;
+    }
+}
+
++ (void)setShouldStopOperations:(BOOL)value {
+    @synchronized(self) { // Ensure thread-safety when modifying _shouldStopOperations
+        _shouldStopOperations = value;
+    }
+}
+
++ (NSOperationQueue *)downloadQueue {
+    @synchronized(self) {
+        if (_downloadQueue == nil) {
+            _downloadQueue = [[NSOperationQueue alloc] init];
+            _downloadQueue.name = @"io.exodus.RNFastCrypto.DownloadQueue";
+            _downloadQueue.maxConcurrentOperationCount = NSOperationQueueDefaultMaxConcurrentOperationCount;
+        }
+        return _downloadQueue;
+    }
+}
+
++ (NSOperationQueue *)processingQueue {
+    @synchronized(self) {
+        if (_processingQueue == nil) {
+            _processingQueue = [[NSOperationQueue alloc] init];
+            _processingQueue.name = @"io.exodus.RNFastCrypto.ProcessingQueue";
+            _processingQueue.maxConcurrentOperationCount = 1; 
+        }
+        return _processingQueue;
+    }
+}
+
++ (NSMutableArray *)downloadOperations {
+    @synchronized(self) {
+        if (_downloadOperations == nil) {
+            _downloadOperations = [[NSMutableArray alloc] init];
+        }
+        return _downloadOperations;
+    }
+}
+
++ (NSMutableArray *)downloadOrder {
+    @synchronized(self) {
+        if (_downloadOrder == nil) {
+            _downloadOrder = [[NSMutableArray alloc] init];
+        }
+        return _downloadOrder;
     }
 }
 
@@ -122,26 +186,29 @@ __block BOOL shouldProcessTasks;
         return;
     }
 
-    dispatch_async(downloadQueue, ^{
-        if (!shouldProcessTasks) {
-            // Skip processing
-            return;
-        }
+    if ([RNFastCrypto shouldStopOperations]) { 
+        NSString *errorJSON = @"{\"err_msg\":\"Operations are stopped\"}";
+        resolve(errorJSON);
+        return;
+    }
 
-        NSString *addr = jsonParams[@"url"];
-        NSURL *url = [NSURL URLWithString:addr];
+    NSString *addr = jsonParams[@"url"];
+    NSURL *url = [NSURL URLWithString:addr];
 
-        NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
-        [urlRequest setHTTPMethod:@"GET"];
-        [urlRequest setTimeoutInterval: 4 * 60];
+    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+    [urlRequest setHTTPMethod:@"GET"];
+    [urlRequest setTimeoutInterval: 4 * 60];
 
+    NSBlockOperation *downloadOperation = [NSBlockOperation blockOperationWithBlock:^{
         NSURLSession *session = [NSURLSession sharedSession];
+        NSURLSessionDataTask *downloadTask = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+            if ([RNFastCrypto shouldStopOperations]) { 
+                resolve(@"{\"err_msg\":\"Operations are stopped\"}");
+                return;
+            }
 
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
             if (error) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
-                });
+                resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
                 return;
             }
 
@@ -149,15 +216,13 @@ __block BOOL shouldProcessTasks;
             if (httpResponse.statusCode != 200) {
                 NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
                 NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    resolve(errorJSON);
-                });
+                resolve(errorJSON);
                 return;
             }
 
-            dispatch_async(extractUtxosQueue, ^{
-                if (!shouldProcessTasks) {
-                    // Skip processing
+            NSBlockOperation *processingOperation = [NSBlockOperation blockOperationWithBlock:^{
+                if ([RNFastCrypto shouldStopOperations]) { 
+                    resolve(@"{\"err_msg\":\"Operations are stopped\"}");
                     return;
                 }
 
@@ -173,28 +238,43 @@ __block BOOL shouldProcessTasks;
 
                 NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
                 free(pszResult);
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    resolve(jsonResult);
-                });
-            });
 
+                if ([RNFastCrypto shouldStopOperations]) { 
+                    resolve(@"{\"err_msg\":\"Operations are stopped\"}");
+                    return;
+                }
+
+                resolve(jsonResult);
+            }];
+            @synchronized(self) {
+                for (NSString *urlString in [RNFastCrypto downloadOrder]) {
+                    if ([urlString isEqualToString:addr]) {
+                        // Find the download operation for this URL
+                        for (NSURLSessionDataTask *task in [RNFastCrypto downloadOperations]) {
+                            if ([task.originalRequest.URL.absoluteString isEqualToString:urlString]) {
+                                [processingOperation addDependency:task.taskDescription];
+                                break;
+                            }
+                        }
+                        [[RNFastCrypto downloadOrder] removeObject:urlString]; // Remove from order array
+                        break;
+                    }
+                }
+            }
+            [[RNFastCrypto processingQueue] addOperation:processingOperation];
         }];
-        [task resume];
-    });
-}
 
+        // Set task description for dependency management
+        downloadTask.taskDescription = [NSString stringWithFormat:@"%@ - %@", addr, downloadTask.originalRequest.URL.absoluteString]; 
+        [[RNFastCrypto downloadOperations] addObject:downloadTask];
+        [downloadTask resume];
+    }];
 
-// Function to start processing tasks
-+ (void) startProcessingTasks() {
-    dispatch_barrier_async(downloadQueue, ^{
-        shouldProcessTasks = YES;
-    });
-}
-
-+ (void)stopProcessingTasks {
-    dispatch_barrier_sync(downloadQueue, ^{
-        shouldProcessTasks = NO;
-    });
+    //  Add to Download Queue and Track Order
+    @synchronized(self) {
+        [[RNFastCrypto downloadOrder] addObject:addr];
+        [[RNFastCrypto downloadQueue] addOperation:downloadOperation]; 
+    }
 }
 
 + (void) handleDefault:(NSString*) method
@@ -230,11 +310,29 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
     } else if ([method isEqualToString:@"start_processing_tasks"]) {
         [RNFastCrypto startProcessingTasks];
+        resolve(nil);
     } else if ([method isEqualToString:@"stop_processing_tasks"]) {
         [RNFastCrypto stopProcessingTasks];
+        resolve(nil);
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
+}
+
++ (void)startProcessingTasks {
+    [RNFastCrypto setShouldStopOperations:NO]; // Reset the flag
+}
+
++ (void)stopProcessingTasks {
+    [RNFastCrypto setShouldStopOperations:YES];
+    [[RNFastCrypto downloadQueue] cancelAllOperations];
+
+    // Use enumeration for safer cancellation of download tasks
+    for (NSURLSessionDownloadTask *task in [RNFastCrypto downloadOperations]) {
+        [task cancel];
+    }
+    [[RNFastCrypto downloadOperations] removeAllObjects];
+    [[RNFastCrypto processingQueue] cancelAllOperations];
 }
 
 RCT_EXPORT_METHOD(readSettings:(NSString *)dirPath
