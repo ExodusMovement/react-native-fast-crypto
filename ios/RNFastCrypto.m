@@ -22,6 +22,7 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
     dispatch_once(&onceToken, ^{
         _processingQueue = [[NSOperationQueue alloc] init];
         _processingQueue.name = @"io.exodus.RNFastCrypto.ProcessingQueue";
+        _processingQueue.maxConcurrentOperationCount = 1;
         if (@available(iOS 8.0, *)) {
             _processingQueue.qualityOfService = NSQualityOfServiceUtility;
         }
