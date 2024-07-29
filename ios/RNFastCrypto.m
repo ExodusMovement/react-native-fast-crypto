@@ -9,81 +9,22 @@
 
 @implementation RNFastCrypto
 
-static NSOperationQueue *_downloadQueue = nil;
 static NSOperationQueue *_processingQueue = nil;
-static NSMutableArray *_downloadOperations = nil;
-static NSMutableArray *_downloadOrder = nil;
-static BOOL _shouldStopOperations = NO; 
+static BOOL _stopOperations = NO; // Flag to control operation cancellation
 
-
-- (instancetype)init 
-{
-    self = [super init];
-    if (self) {
-        _downloadQueue = [[NSOperationQueue alloc] init];
-        _downloadQueue.name = @"io.exodus.RNFastCrypto.downloadQueue";
-        _downloadQueue.maxConcurrentOperationCount = NSOperationQueueDefaultMaxConcurrentOperationCount; 
-
-        _processingQueue = [[NSOperationQueue alloc] init];
-        _processingQueue.name = @"io.exodus.RNFastCrypto.processingQueue";
-        _processingQueue.maxConcurrentOperationCount = 1;
-
-        _downloadOperations = [[NSMutableArray alloc] init];
-        _shouldStopOperations = NO;
-    }
-    return self;
-}
 
 + (BOOL)shouldStopOperations {
-    @synchronized(self) { // Ensure thread-safety when accessing _shouldStopOperations
-        return _shouldStopOperations;
-    }
-}
-
-+ (void)setShouldStopOperations:(BOOL)value {
-    @synchronized(self) { // Ensure thread-safety when modifying _shouldStopOperations
-        _shouldStopOperations = value;
-    }
-}
-
-+ (NSOperationQueue *)downloadQueue {
-    @synchronized(self) {
-        if (_downloadQueue == nil) {
-            _downloadQueue = [[NSOperationQueue alloc] init];
-            _downloadQueue.name = @"io.exodus.RNFastCrypto.DownloadQueue";
-            _downloadQueue.maxConcurrentOperationCount = NSOperationQueueDefaultMaxConcurrentOperationCount;
-        }
-        return _downloadQueue;
-    }
+    return _stopOperations;
 }
 
 + (NSOperationQueue *)processingQueue {
-    @synchronized(self) {
-        if (_processingQueue == nil) {
-            _processingQueue = [[NSOperationQueue alloc] init];
-            _processingQueue.name = @"io.exodus.RNFastCrypto.ProcessingQueue";
-            _processingQueue.maxConcurrentOperationCount = 1; 
-        }
-        return _processingQueue;
-    }
-}
-
-+ (NSMutableArray *)downloadOperations {
-    @synchronized(self) {
-        if (_downloadOperations == nil) {
-            _downloadOperations = [[NSMutableArray alloc] init];
-        }
-        return _downloadOperations;
-    }
-}
-
-+ (NSMutableArray *)downloadOrder {
-    @synchronized(self) {
-        if (_downloadOrder == nil) {
-            _downloadOrder = [[NSMutableArray alloc] init];
-        }
-        return _downloadOrder;
-    }
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _processingQueue = [[NSOperationQueue alloc] init];
+        _processingQueue.name = @"io.exodus.RNFastCrypto.ProcessingQueue";
+        _processingQueue.maxConcurrentOperationCount = 1; // Ensures only one task runs at a time
+    });
+    return _processingQueue;
 }
 
 - (dispatch_queue_t)methodQueue
@@ -199,7 +140,7 @@ static BOOL _shouldStopOperations = NO;
     [urlRequest setHTTPMethod:@"GET"];
     [urlRequest setTimeoutInterval: 4 * 60];
 
-    NSBlockOperation *downloadOperation = [NSBlockOperation blockOperationWithBlock:^{
+    NSBlockOperation *processOperation = [NSBlockOperation blockOperationWithBlock:^{
         NSURLSession *session = [NSURLSession sharedSession];
         NSURLSessionDataTask *downloadTask = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
             if ([RNFastCrypto shouldStopOperations]) { 
@@ -220,61 +161,34 @@ static BOOL _shouldStopOperations = NO;
                 return;
             }
 
-            NSBlockOperation *processingOperation = [NSBlockOperation blockOperationWithBlock:^{
-                if ([RNFastCrypto shouldStopOperations]) { 
-                    resolve(@"{\"err_msg\":\"Operations are stopped\"}");
-                    return;
-                }
-
-                char *pszResult = NULL;
-
-                extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
-
-                if (pszResult == NULL) {
-                    NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
-                    resolve(errorJSON);
-                    return;
-                }
-
-                NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
-                free(pszResult);
-
-                if ([RNFastCrypto shouldStopOperations]) { 
-                    resolve(@"{\"err_msg\":\"Operations are stopped\"}");
-                    return;
-                }
-
-                resolve(jsonResult);
-            }];
-            @synchronized(self) {
-                for (NSString *urlString in [RNFastCrypto downloadOrder]) {
-                    if ([urlString isEqualToString:addr]) {
-                        // Find the download operation for this URL
-                        for (NSURLSessionDataTask *task in [RNFastCrypto downloadOperations]) {
-                            if ([task.originalRequest.URL.absoluteString isEqualToString:urlString]) {
-                                [processingOperation addDependency:task.taskDescription];
-                                break;
-                            }
-                        }
-                        [[RNFastCrypto downloadOrder] removeObject:urlString]; // Remove from order array
-                        break;
-                    }
-                }
+            if ([RNFastCrypto shouldStopOperations]) { 
+                resolve(@"{\"err_msg\":\"Operations are stopped\"}");
+                return;
             }
-            [[RNFastCrypto processingQueue] addOperation:processingOperation];
-        }];
 
-        // Set task description for dependency management
-        downloadTask.taskDescription = [NSString stringWithFormat:@"%@ - %@", addr, downloadTask.originalRequest.URL.absoluteString]; 
-        [[RNFastCrypto downloadOperations] addObject:downloadTask];
+            char *pszResult = NULL;
+
+            extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+
+            if (pszResult == NULL) {
+                NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+                resolve(errorJSON);
+                return;
+            }
+
+            NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+            free(pszResult);
+
+            if ([RNFastCrypto shouldStopOperations]) { 
+                resolve(@"{\"err_msg\":\"Operations are stopped\"}");
+                return;
+            }
+
+            resolve(jsonResult);
+        }];
         [downloadTask resume];
     }];
-
-    //  Add to Download Queue and Track Order
-    @synchronized(self) {
-        [[RNFastCrypto downloadOrder] addObject:addr];
-        [[RNFastCrypto downloadQueue] addOperation:downloadOperation]; 
-    }
+    [[RNFastCrypto processingQueue] addOperation:processOperation];
 }
 
 + (void) handleDefault:(NSString*) method
@@ -310,28 +224,21 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
     } else if ([method isEqualToString:@"start_processing_tasks"]) {
         [RNFastCrypto startProcessingTasks];
-        resolve(nil);
+        resolve(@"{\"success\":true}");
     } else if ([method isEqualToString:@"stop_processing_tasks"]) {
         [RNFastCrypto stopProcessingTasks];
-        resolve(nil);
+        resolve(@"{\"success\":true}");
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
 }
 
 + (void)startProcessingTasks {
-    [RNFastCrypto setShouldStopOperations:NO]; // Reset the flag
+    _stopOperations = NO; // Reset the flag
 }
 
 + (void)stopProcessingTasks {
-    [RNFastCrypto setShouldStopOperations:YES];
-    [[RNFastCrypto downloadQueue] cancelAllOperations];
-
-    // Use enumeration for safer cancellation of download tasks
-    for (NSURLSessionDownloadTask *task in [RNFastCrypto downloadOperations]) {
-        [task cancel];
-    }
-    [[RNFastCrypto downloadOperations] removeAllObjects];
+    _stopOperations = YES;
     [[RNFastCrypto processingQueue] cancelAllOperations];
 }
 

@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <chrono>
 #include <curl/curl.h>
 #include <iostream>
 #include <fstream>
@@ -121,16 +122,20 @@ bool downloadFile(const std::string& url, std::vector<char>& buffer) {
 }
 
 void test_full_flow_with_clarity() {
-    std::string url = "https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/3148308.json.gzip"; 
+    std::string url = "https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/2686963.json.gzip"; 
     std::vector<char> buffer;
 
     std::cout << "Start download blocks file" << '\n';
+    auto downloadStart = std::chrono::high_resolution_clock::now();
     downloadFile(url, buffer);
     if (!downloadFile(url, buffer)) {
         std::cerr << "Failed to download blocks file\n";
         return;
     }
+    auto downloadEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> downloadDuration = downloadEnd - downloadStart;
     std::cout << "Done download file" << '\n';
+    std::cout << "Download duration: " << downloadDuration.count() << " seconds\n";
 
     std::ifstream paramsFile("test/input/input.json");
     if (!paramsFile) {
@@ -142,8 +147,13 @@ void test_full_flow_with_clarity() {
     paramsStream << paramsFile.rdbuf();
     std::string params = paramsStream.str();
 
+    auto extractStart = std::chrono::high_resolution_clock::now();
     auto resp = serial_bridge::extract_data_from_clarity_blocks_response_str(buffer.data(), buffer.size(), params);
+    auto extractEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> extractDuration = extractEnd - extractStart;
+
     std::cout << resp << '\n';
+    std::cout << "Extraction duration: " << extractDuration.count() << " seconds\n";
     return;
 }
 

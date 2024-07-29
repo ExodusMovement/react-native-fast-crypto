@@ -1,7 +1,7 @@
 depends="boost monerocorecustom"
 inherit lib
 
-version="bc7a18c76d8d6a736533e53f515b49331947f35f"
+version="6ce1dbb6f3a94f1ebcebb7929c3571465732848e"
 source="https://github.com/ExodusMovement/mymonero-core-cpp.git#${version}"
 
 build() {
