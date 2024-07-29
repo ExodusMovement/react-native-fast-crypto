@@ -24,6 +24,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         System.loadLibrary("crypto_bridge"); //this loads the library when the class is loaded
     }
 
+    private static final AtomicBoolean isStopped = new AtomicBoolean(false); // Default is allow to process any incoming tasks from JS
 
     private final String method;
     private final String jsonParams;
@@ -99,12 +100,36 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
                 connection.connect();
 
+                // Check for cancellation before reading data
+                if (isStopped.get()) { 
+                    promise.reject("Err", new Exception("Download cancelled by user."));
+                    return null; 
+                }
+
                 String contentLength = connection.getHeaderField("Content-Length");
                 int responseLength = contentLength != null ? Integer.parseInt(contentLength) : 0;
                 if (responseLength > 0) {
                     try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
                         byte[] bytes = new byte[responseLength];
-                        dataInputStream.readFully(bytes);
+                        int bytesRead = 0;
+                        int offset = 0;
+
+                        // Check for cancellation periodically during download
+                        while (bytesRead != -1 && offset < responseLength) { 
+                            if (isStopped.get()) {
+                                promise.reject("Err", new Exception("Download stopped by user."));
+                                return null;
+                            }
+                            bytesRead = dataInputStream.read(bytes, offset, responseLength - offset);
+                            offset += bytesRead;
+                        }
+
+                        // Check for cancellation after download is complete
+                        if (isStopped.get()) { 
+                            promise.reject("Err", new Exception("Processing are stopped"));
+                            return null; 
+                        }
+
                         ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
                         responseBuffer.put(bytes, 0, responseLength);
                         String out = extractUtxosFromClarityBlocksResponse(responseBuffer, jsonParams);
@@ -115,7 +140,11 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                         }
                     }
                 } else {
-                    promise.reject("Err", new Exception("Invalid or no content length"));
+                    if (e instanceof IOException && isStopped.get()) { 
+                        promise.reject("Err", new Exception("Download stopped by user."));
+                    } else {
+                        promise.reject("Err", new Exception("Invalid or no content length"));
+                    }
                 }
             } catch (Exception e) {
                 promise.reject("Err", e);
@@ -125,6 +154,12 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 }
             }
             return null;
+        } else if (method.equals("allow_processing_task")) {
+            isStopped.set(false);
+            promise.resolve("{\"success\":true}");
+        } else if (method.equals("cancel_processing_task")) {
+            isStopped.set(true);
+            promise.resolve("{\"success\":true}");
         } else if (method.equals("get_transaction_pool_hashes")) {
             try {
                 JSONObject params = new JSONObject(jsonParams);

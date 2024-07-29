@@ -9,6 +9,27 @@
 
 @implementation RNFastCrypto
 
+static NSOperationQueue *_processingQueue = nil;
+static BOOL _stopProcessing = NO; // Flag to control operation cancellation
+
+
++ (BOOL)shouldStopProcessing {
+    return _stopProcessing;
+}
+
++ (NSOperationQueue *)processingQueue {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _processingQueue = [[NSOperationQueue alloc] init];
+        _processingQueue.name = @"io.exodus.RNFastCrypto.ProcessingQueue";
+        _processingQueue.maxConcurrentOperationCount = 1; // Ensures only one task runs at a time
+        if (@available(iOS 8.0, *)) {
+            _processingQueue.qualityOfService = NSQualityOfServiceUserInitiated; 
+        }
+    });
+    return _processingQueue;
+}
+
 - (dispatch_queue_t)methodQueue
 {
     dispatch_queue_attr_t qosAttribute = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_BACKGROUND, 0);
@@ -58,6 +79,18 @@
     NSError *jsonError;
     NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
 
+    if (jsonError) {
+        NSString *errorJSON = @"{\"err_msg\":\"Failed to parse JSON parameters\"}";
+        resolve(errorJSON);
+        return;
+    }
+
+    if ([RNFastCrypto shouldStopProcessing]) { 
+        NSString *errorJSON = @"{\"err_msg\":\"Download stopped by user\"}";
+        resolve(errorJSON);
+        return;
+    }
+
     NSString *addr = jsonParams[@"url"];
     NSString *startHeight = jsonParams[@"start_height"];
 
@@ -75,23 +108,44 @@
     [urlRequest setTimeoutInterval: 4 * 60];
     [urlRequest setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+    NSBlockOperation *processOperation = [NSBlockOperation blockOperationWithBlock:^{
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
 
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            resolve(@"{\"err_msg\":\"Network request failed\"}");
-            return;
-        }
+         NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (error) {
+                resolve(@"{\"err_msg\":\"Network request failed\"}");
+                return;
+            }
 
-        char *pszResult = NULL;
+            if ([RNFastCrypto shouldStopProcessing]) { 
+                resolve(@"{\"err_msg\":\"Processing are stopped\"}");
+                return;
+            }
 
-        extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+            char *pszResult = NULL;
 
-        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
-        free(pszResult);
-        resolve(jsonResult);
+            extract_utxos_from_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+
+            if (pszResult == NULL) {
+                NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+                resolve(errorJSON);
+                return;
+            }
+
+            NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+            free(pszResult);
+
+            if ([RNFastCrypto shouldStopProcessing]) { 
+                resolve(@"{\"err_msg\":\"Operations are stopped\"}");
+                return;
+            }
+
+            resolve(jsonResult);
+        }];
+        [task resume];
     }];
-    [task resume];
+    [[RNFastCrypto processingQueue] addOperation:processOperation];
 }
 
 + (void) handleDownloadFromClarityAndProcess:(NSString*) method
@@ -109,6 +163,12 @@
         return;
     }
 
+    if ([RNFastCrypto shouldStopProcessing]) { 
+        NSString *errorJSON = @"{\"err_msg\":\"Download stopped by user\"}";
+        resolve(errorJSON);
+        return;
+    }
+
     NSString *addr = jsonParams[@"url"];
     NSURL *url = [NSURL URLWithString:addr];
 
@@ -116,37 +176,51 @@
     [urlRequest setHTTPMethod:@"GET"];
     [urlRequest setTimeoutInterval: 4 * 60];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+    NSBlockOperation *processOperation = [NSBlockOperation blockOperationWithBlock:^{
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
+        NSURLSessionDataTask *downloadTask = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (error) {
+                resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+                return;
+            }
 
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
-            return;
-        }
+            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+            if (httpResponse.statusCode != 200) {
+                NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
+                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
+                resolve(errorJSON);
+                return;
+            }
 
-        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        if (httpResponse.statusCode != 200) {
-            NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
-            NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
-            resolve(errorJSON);
-            return;
-        }
+            if ([RNFastCrypto shouldStopProcessing]) { 
+                resolve(@"{\"err_msg\":\"Processing are stopped\"}");
+                return;
+            }
 
-        char *pszResult = NULL;
+            char *pszResult = NULL;
 
-        extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
+            extract_utxos_from_clarity_blocks_response(data.bytes, data.length, [params UTF8String], &pszResult);
 
-        if (pszResult == NULL) {
-            NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
-            resolve(errorJSON);
-            return;
-        }
+            if (pszResult == NULL) {
+                NSString *errorJSON = @"{\"err_msg\":\"Internal error: Memory allocation failed\"}";
+                resolve(errorJSON);
+                return;
+            }
 
-        NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
-        free(pszResult);
-        resolve(jsonResult);
+            NSString *jsonResult = [NSString stringWithUTF8String:pszResult];
+            free(pszResult);
+
+            if ([RNFastCrypto shouldStopProcessing]) { 
+                resolve(@"{\"err_msg\":\"Operations are stopped\"}");
+                return;
+            }
+
+            resolve(jsonResult);
+        }];
+        [downloadTask resume];
     }];
-    [task resume];
+    [[RNFastCrypto processingQueue] addOperation:processOperation];
 }
 
 + (void) handleDefault:(NSString*) method
@@ -180,9 +254,24 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
         [RNFastCrypto handleDownloadFromClarityAndProcess:method :params :resolve :reject];
     } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
+    } else if ([method isEqualToString:@"allow_process_task"]) {
+        [RNFastCrypto allowProcessingTasks];
+        resolve(@"{\"success\":true}");
+    } else if ([method isEqualToString:@"cancel_processing_task"]) {
+        [RNFastCrypto cancelProcessingTasks];
+        resolve(@"{\"success\":true}");
     } else {
         [RNFastCrypto handleDefault:method :params :resolve :reject];
     }
+}
+
++ (void)allowProcessingTasks {
+    _stopProcessing = NO; // Reset the flag
+}
+
++ (void)cancelProcessingTasks {
+    _stopProcessing = YES;
+    [[RNFastCrypto processingQueue] cancelAllOperations];
 }
 
 RCT_EXPORT_METHOD(readSettings:(NSString *)dirPath
