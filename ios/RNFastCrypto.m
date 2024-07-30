@@ -78,15 +78,10 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
     NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
+    _stopProcessing = NO; // Reset the flag
 
     if (jsonError) {
         NSString *errorJSON = @"{\"err_msg\":\"Failed to parse JSON parameters\"}";
-        resolve(errorJSON);
-        return;
-    }
-
-    if ([RNFastCrypto shouldStopProcessing]) { 
-        NSString *errorJSON = @"{\"err_msg\":\"Download stopped by user\"}";
         resolve(errorJSON);
         return;
     }
@@ -119,7 +114,7 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
             }
 
             if ([RNFastCrypto shouldStopProcessing]) { 
-                resolve(@"{\"err_msg\":\"Processing are stopped\"}");
+                resolve(@"{\"err_msg\":\"Processing stopped\"}");
                 return;
             }
 
@@ -156,15 +151,10 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
     NSData *paramsData = [params dataUsingEncoding:NSUTF8StringEncoding];
     NSError *jsonError;
     NSDictionary *jsonParams = [NSJSONSerialization JSONObjectWithData:paramsData options:kNilOptions error:&jsonError];
-    
+    _stopProcessing = NO; // Reset the flag
+
     if (jsonError) {
         NSString *errorJSON = @"{\"err_msg\":\"Failed to parse JSON parameters\"}";
-        resolve(errorJSON);
-        return;
-    }
-
-    if ([RNFastCrypto shouldStopProcessing]) { 
-        NSString *errorJSON = @"{\"err_msg\":\"Download stopped by user\"}";
         resolve(errorJSON);
         return;
     }
@@ -194,7 +184,7 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
             }
 
             if ([RNFastCrypto shouldStopProcessing]) { 
-                resolve(@"{\"err_msg\":\"Processing are stopped\"}");
+                resolve(@"{\"err_msg\":\"Processing stopped\"}");
                 return;
             }
 
