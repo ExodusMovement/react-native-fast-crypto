@@ -188,7 +188,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         } else if (method.equals("allow_processing_task")) {
             isStopped.set(false);
             promise.resolve("{\"success\":true}");
-        } else if (method.equals("cancel_processing_task")) {
+        } else if (method.equals("stop_processing_task")) {
             isStopped.set(true);
             promise.resolve("{\"success\":true}");
         } else if (method.equals("get_transaction_pool_hashes")) {
