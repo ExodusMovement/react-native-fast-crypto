@@ -11,7 +11,7 @@
 
 static NSOperationQueue *_processingQueue = nil;
 static BOOL _stopProcessing = NO; // Flag to control operation cancellation
-
+static NSDictionary *_qosMapping;
 
 + (BOOL)shouldStopProcessing {
     return _stopProcessing;
@@ -23,11 +23,21 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
         _processingQueue = [[NSOperationQueue alloc] init];
         _processingQueue.name = @"io.exodus.RNFastCrypto.ProcessingQueue";
         _processingQueue.maxConcurrentOperationCount = 1;
-        if (@available(iOS 8.0, *)) {
-            _processingQueue.qualityOfService = NSQualityOfServiceUtility;
-        }
     });
     return _processingQueue;
+}
+
++ (NSDictionary *)qosMapping {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _qosMapping = @{
+            @"user_interactive": @(NSQualityOfServiceUserInteractive),
+            @"user_initiated": @(NSQualityOfServiceUserInitiated),
+            @"utility": @(NSQualityOfServiceUtility),
+            @"background": @(NSQualityOfServiceBackground)
+        };
+    });
+    return _qosMapping;
 }
 
 - (dispatch_queue_t)methodQueue
@@ -140,6 +150,10 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
         }];
         [task resume];
     }];
+    if (@available(iOS 8.0, *)) {
+        NSString *qosString = jsonParams[@"qos"];
+        processOperation.qualityOfService = [RNFastCrypto convertToQosFromString:qosString];
+    }
     [[RNFastCrypto processingQueue] addOperation:processOperation];
 }
 
@@ -210,6 +224,12 @@ static BOOL _stopProcessing = NO; // Flag to control operation cancellation
         }];
         [downloadTask resume];
     }];
+    
+    if (@available(iOS 8.0, *)) {
+        NSString *qosString = jsonParams[@"qos"];
+        processOperation.qualityOfService = [RNFastCrypto convertToQosFromString:qosString];
+    }
+
     [[RNFastCrypto processingQueue] addOperation:processOperation];
 }
 
@@ -262,6 +282,16 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
 + (void)stopProcessingTasks {
     _stopProcessing = YES;
     [[RNFastCrypto processingQueue] cancelAllOperations];
+}
+
++ (NSQualityOfService)convertToQosFromString:(NSString *)qosString {
+    NSNumber *qosValue = [RNFastCrypto qosMapping][qosString];
+    if (qosValue) {
+        return qosValue.integerValue;
+    }
+
+    // Default value
+    return NSQualityOfServiceUtility;
 }
 
 RCT_EXPORT_METHOD(readSettings:(NSString *)dirPath
