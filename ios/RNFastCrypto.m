@@ -264,9 +264,6 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
         [RNFastCrypto handleDownloadFromClarityAndProcess:method :params :resolve :reject];
     } else if ([method isEqualToString:@"get_transaction_pool_hashes"]) {
         [RNFastCrypto handleGetTransactionPoolHashes:method :params :resolve :reject];
-    } else if ([method isEqualToString:@"allow_processing_task"]) {
-        [RNFastCrypto allowProcessingTasks];
-        resolve(@"{\"success\":true}");
     } else if ([method isEqualToString:@"stop_processing_task"]) {
         [RNFastCrypto stopProcessingTasks];
         resolve(@"{\"success\":true}");
@@ -282,6 +279,7 @@ RCT_REMAP_METHOD(moneroCore, :(NSString*) method
 + (void)stopProcessingTasks {
     _stopProcessing = YES;
     [[RNFastCrypto processingQueue] cancelAllOperations];
+    [[RNFastCrypto processingQueue] waitUntilAllOperationsAreFinished]; 
 }
 
 + (NSQualityOfService)convertToQosFromString:(NSString *)qosString {

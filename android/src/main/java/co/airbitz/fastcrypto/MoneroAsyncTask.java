@@ -65,6 +65,10 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 connection.setDoOutput(true);
                 try (OutputStream outputStream = connection.getOutputStream()) {
                     for (int i = 0; i < requestLength; i++) {
+                        if (isStopped.get()) { 
+                            promise.reject("Err", new Exception("Operations are stopped"));
+                            return null; 
+                        }
                         outputStream.write(requestBuffer.get(i));
                     }
                 }
@@ -141,6 +145,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             return null;
         } else if (method.equals("stop_processing_task")) {
             isStopped.set(true);
+            cancel(true);
             promise.resolve("{\"success\":true}");
         } else if (method.equals("get_transaction_pool_hashes")) {
             try {
