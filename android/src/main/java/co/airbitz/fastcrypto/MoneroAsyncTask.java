@@ -14,6 +14,9 @@ import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.io.IOException;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
