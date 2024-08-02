@@ -7,11 +7,13 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RNFastCryptoModule extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
     private final String userAgent;
+    private AtomicBoolean isStopped = new AtomicBoolean(false); 
 
     public RNFastCryptoModule(ReactApplicationContext reactContext, String userAgent) {
         super(reactContext);
@@ -29,8 +31,13 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
             final String method,
             final String jsonParams,
             final Promise promise) {
-        AsyncTask task = new MoneroAsyncTask(method, jsonParams, userAgent, promise);
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+        if ("stop_processing_task".equals(method)) {
+            isStopped.set(true);
+            promise.resolve("{\"success\":true}");
+        } else {
+            AsyncTask task = new MoneroAsyncTask(method, jsonParams, userAgent, promise);
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
+        }
     }
 
     @ReactMethod
