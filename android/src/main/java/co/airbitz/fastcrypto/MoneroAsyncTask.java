@@ -31,12 +31,14 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     private final String jsonParams;
     private final String userAgent;
     private final Promise promise;
+    private final AtomicBoolean isStopped;
 
-    public MoneroAsyncTask(String method, String jsonParams, String userAgent, Promise promise) {
+    public MoneroAsyncTask(String method, String jsonParams, String userAgent, AtomicBoolean isStopped, Promise promise) {
         this.method = method;
         this.jsonParams = jsonParams;
         this.userAgent = userAgent;
         this.promise = promise;
+        this.isStopped = isStopped;
     }
 
     public native String moneroCoreJNI(String method, String jsonParams);
@@ -50,7 +52,6 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         if (method.equals("download_and_process")) {
             HttpURLConnection connection = null;
             try {
-                RNFastCryptoModule.this.isStopped.set(false);
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
                 int startHeight = params.getInt("start_height");
@@ -66,7 +67,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 connection.setDoOutput(true);
                 try (OutputStream outputStream = connection.getOutputStream()) {
                     for (int i = 0; i < requestLength; i++) {
-                        if (RNFastCryptoModule.this.isStopped.get()) { 
+                        if (isStopped.get()) { 
                             promise.reject("Err", new Exception("Operations are stopped"));
                             return null; 
                         }
@@ -83,7 +84,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     if (out == null) {
                         promise.reject("Err", new Exception("Internal error: Memory allocation failed"));
                     } else {
-                        if (RNFastCryptoModule.this.isStopped.get()) { 
+                        if (isStopped.get()) { 
                             promise.reject("Err", new Exception("Operations are stopped"));
                             return null; 
                         }
@@ -91,7 +92,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     }
                 }
             } catch (Exception e) {
-                if (e instanceof IOException && RNFastCryptoModule.this.isStopped.get()) {
+                if (e instanceof IOException && isStopped.get()) {
                     promise.reject("Err", new Exception("Download cancelled by user."));
                 } else {
                     promise.reject("Err", e);
@@ -105,7 +106,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         } else if (method.equals("download_from_clarity_and_process")) {
             HttpURLConnection connection = null;
             try {
-                RNFastCryptoModule.this.isStopped.set(false);
+                isStopped.set(false);
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
                 URL url = new URL(addr);
@@ -133,7 +134,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     promise.reject("Err", new Exception("Invalid or no content length"));
                 }
             } catch (Exception e) {
-                if (e instanceof IOException && RNFastCryptoModule.this.isStopped.get()) {
+                if (e instanceof IOException && isStopped.get()) {
                     promise.reject("Err", new Exception("Download cancelled by user."));
                 } else {
                     promise.reject("Err", e);
@@ -193,7 +194,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
         // Check for cancellation periodically during download
         while (bytesRead != -1 && offset < responseLength) {
-            if (RNFastCryptoModule.this.isStopped.get()) {
+            if (isStopped.get()) {
                 promise.reject("Err", new Exception("Download stopped by user."));
                 return null;
             }
@@ -202,7 +203,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         }
 
         // Check for cancellation after download is complete
-        if (RNFastCryptoModule.this.isStopped.get()) {
+        if (isStopped.get()) {
             promise.reject("Err", new Exception("Processing stopped"));
             return null;
         }

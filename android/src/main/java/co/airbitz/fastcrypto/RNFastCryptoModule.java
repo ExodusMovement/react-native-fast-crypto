@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Arrays;
 
 public class RNFastCryptoModule extends ReactContextBaseJavaModule {
 
@@ -35,7 +36,10 @@ public class RNFastCryptoModule extends ReactContextBaseJavaModule {
             isStopped.set(true);
             promise.resolve("{\"success\":true}");
         } else {
-            AsyncTask task = new MoneroAsyncTask(method, jsonParams, userAgent, promise);
+            if (Arrays.asList("download_and_process", "download_from_clarity_and_process").contains(method)) {
+                isStopped.set(false);
+            }
+            AsyncTask task = new MoneroAsyncTask(method, jsonParams, userAgent, isStopped, promise);
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null);
         }
     }
