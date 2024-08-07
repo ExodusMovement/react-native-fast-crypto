@@ -10,6 +10,7 @@ import org.json.JSONObject;
 
 import java.io.DataInputStream;
 import java.io.OutputStream;
+import java.io.InputStream; 
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -179,7 +180,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     }
     
 
-    private String readAndProcessData(InputStream inputStream, int responseLength, BiFunction<ByteBuffer, String, String> extractUtxos) throws Exception {
+    private String readAndProcessData(InputStream inputStream, long responseLength, BiFunction<ByteBuffer, String, String> extractUtxos) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         byte[] bytes = new byte[8192];
         int bytesRead = 0;
