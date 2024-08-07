@@ -165,11 +165,16 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         if (contentLengthStr == null) {
             throw new Exception("Missing Content-Length header");
         }
-
+    
         try {
             int contentLength = Integer.parseInt(contentLengthStr);
             if (contentLength < 0) {
                 throw new Exception("Invalid Content-Length header");
+            }
+            // Maximum size set to 100 MB
+            int maxContentLength = 100 * 1024 * 1024; // 100 MB
+            if (contentLength > maxContentLength) {
+                throw new Exception("Content-Length exceeds allowed maximum of 100 MB");
             }
             return contentLength;
         } catch (NumberFormatException e) {
