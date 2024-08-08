@@ -68,9 +68,9 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 connection.setDoOutput(true);
                 try (OutputStream outputStream = connection.getOutputStream()) {
                     for (int i = 0; i < requestLength; i++) {
-                        if (isStopped.get()) { 
+                        if (isStopped.get()) {
                             promise.reject("Err", new Exception("Operations are stopped"));
-                            return null; 
+                            return null;
                         }
                         outputStream.write(requestBuffer.get(i));
                     }
@@ -85,7 +85,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 }
             } catch (Exception e) {
                 promise.reject("Err", e);
-            }  finally {
+            } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
@@ -171,7 +171,6 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             if (contentLength < 0) {
                 throw new Exception("Invalid Content-Length header");
             }
-            // Maximum size set to 100 MB
             int maxContentLength = 100 * 1024 * 1024; // 100 MB
             if (contentLength > maxContentLength) {
                 throw new Exception("Content-Length exceeds allowed maximum of 100 MB");
@@ -181,40 +180,47 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             throw new Exception("Cannot parse Content-Length header");
         }
     }
-    
 
     private String readAndProcessData(DataInputStream dataInputStream, int responseLength, BiFunction<ByteBuffer, String, String> extractUtxos) throws Exception {
-        byte[] bytes = new byte[responseLength];
-        int bytesRead = 0;
-        int offset = 0;
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] tmp = new byte[8192];
 
-        // Check for cancellation periodically during download
-        while (bytesRead != -1 && offset < responseLength) {
+        int nRead = 0;
+        while (buffer.size() < responseLength) {
             if (isStopped.get()) {
-                promise.reject("Err", new Exception("Download stopped by user."));
-                return null;
+                throw new Exception("Downloading stopped by user");
             }
-            bytesRead = dataInputStream.read(bytes, offset, responseLength - offset);
-            offset += bytesRead;
+            nRead = dataInputStream.read(tmp, 0, Math.min(tmp.length, responseLength - buffer.size()));
+            if (nRead == -1) {
+                throw new Exception("Unexpected end of stream");
+            }
+            buffer.write(tmp, 0, nRead);
         }
 
         // Check for cancellation after download is complete
         if (isStopped.get()) {
-            promise.reject("Err", new Exception("Processing stopped"));
-            return null;
+            throw new Exception("Processing stopped by user");
         }
 
-        ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
-        responseBuffer.put(bytes, 0, responseLength);
-        String out = extractUtxos.apply(responseBuffer, jsonParams);
-        if (out == null) {
-            throw new Exception("Internal error: Memory allocation failed");
-        }
+        ByteBuffer responseBuffer = null;
+        try {
+            responseBuffer = ByteBuffer.allocateDirect(responseLength);
+            responseBuffer.put(buffer.toByteArray(), 0, responseLength);
 
-        if (isStopped.get()) {
-            throw new Exception("Operations are stopped");
-        }
+            String out = extractUtxos.apply(responseBuffer, jsonParams);
+            if (out == null) {
+                throw new Exception("Internal error: Memory allocation failed");
+            }
 
-        return out;
+            if (isStopped.get()) {
+                throw new Exception("Operations are stopped");
+            }
+
+            return out;
+        } finally {
+            if (responseBuffer != null) {
+                responseBuffer.clear();
+            }
+        }
     }
 };
