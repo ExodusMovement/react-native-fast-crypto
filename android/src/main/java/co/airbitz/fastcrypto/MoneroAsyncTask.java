@@ -15,6 +15,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.io.IOException;
+import java.util.function.BiFunction;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -67,37 +68,24 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 connection.setDoOutput(true);
                 try (OutputStream outputStream = connection.getOutputStream()) {
                     for (int i = 0; i < requestLength; i++) {
-                        if (isStopped.get()) { 
+                        if (isStopped.get()) {
                             promise.reject("Err", new Exception("Operations are stopped"));
-                            return null; 
+                            return null;
                         }
                         outputStream.write(requestBuffer.get(i));
                     }
                 }
                 connection.connect();
 
-                String contentLength = connection.getHeaderField("Content-Length");
-                int responseLength = Integer.parseInt(contentLength);
+                String contentLengthStr = connection.getHeaderField("Content-Length");
+                int responseLength = validateContentLengthHeader(contentLengthStr);
                 try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
-                    ByteBuffer responseBuffer = readAndProcessData(dataInputStream, responseLength);
-                    String out = extractUtxosFromBlocksResponse(responseBuffer, jsonParams);
-                    if (out == null) {
-                        promise.reject("Err", new Exception("Internal error: Memory allocation failed"));
-                    } else {
-                        if (isStopped.get()) { 
-                            promise.reject("Err", new Exception("Operations are stopped"));
-                            return null; 
-                        }
-                        promise.resolve(out);
-                    }
+                    String out = readAndProcessData(dataInputStream, responseLength, this::extractUtxosFromBlocksResponse);
+                    promise.resolve(out);
                 }
             } catch (Exception e) {
-                if (e instanceof IOException && isStopped.get()) {
-                    promise.reject("Err", new Exception("Download cancelled by user."));
-                } else {
-                    promise.reject("Err", e);
-                }
-            }  finally {
+                promise.reject("Err", e);
+            } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
@@ -106,7 +94,6 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         } else if (method.equals("download_from_clarity_and_process")) {
             HttpURLConnection connection = null;
             try {
-                isStopped.set(false);
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
                 URL url = new URL(addr);
@@ -118,27 +105,14 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
                 connection.connect();
 
-                String contentLength = connection.getHeaderField("Content-Length");
-                int responseLength = contentLength != null ? Integer.parseInt(contentLength) : 0;
-                if (responseLength > 0) {
-                    try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
-                        ByteBuffer responseBuffer = readAndProcessData(dataInputStream, responseLength);
-                        String out = extractUtxosFromClarityBlocksResponse(responseBuffer, jsonParams);
-                        if (out == null) {
-                            promise.reject("Err", new Exception("Internal error: Memory allocation failed"));
-                        } else {
-                            promise.resolve(out);
-                        }
-                    }
-                } else {
-                    promise.reject("Err", new Exception("Invalid or no content length"));
+                String contentLengthStr = connection.getHeaderField("Content-Length");
+                int responseLength = validateContentLengthHeader(contentLengthStr);
+                try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
+                    String out = readAndProcessData(dataInputStream, responseLength, this::extractUtxosFromClarityBlocksResponse);
+                    promise.resolve(out);
                 }
             } catch (Exception e) {
-                if (e instanceof IOException && isStopped.get()) {
-                    promise.reject("Err", new Exception("Download cancelled by user."));
-                } else {
-                    promise.reject("Err", e);
-                }
+                promise.reject("Err", e);
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -187,29 +161,66 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         return null;
     }
 
-    private ByteBuffer readAndProcessData(DataInputStream dataInputStream, int responseLength) throws IOException {
-        byte[] bytes = new byte[responseLength];
-        int bytesRead = 0;
-        int offset = 0;
-
-        // Check for cancellation periodically during download
-        while (bytesRead != -1 && offset < responseLength) {
-            if (isStopped.get()) {
-                promise.reject("Err", new Exception("Download stopped by user."));
-                return null;
+    private int validateContentLengthHeader(String contentLengthStr) throws Exception {
+        if (contentLengthStr == null) {
+            throw new Exception("Missing Content-Length header");
+        }
+    
+        try {
+            int contentLength = Integer.parseInt(contentLengthStr);
+            if (contentLength < 0) {
+                throw new Exception("Invalid Content-Length header");
             }
-            bytesRead = dataInputStream.read(bytes, offset, responseLength - offset);
-            offset += bytesRead;
+            int maxContentLength = 100 * 1024 * 1024; // 100 MB
+            if (contentLength > maxContentLength) {
+                throw new Exception("Content-Length exceeds allowed maximum of 100 MB");
+            }
+            return contentLength;
+        } catch (NumberFormatException e) {
+            throw new Exception("Cannot parse Content-Length header");
+        }
+    }
+
+    private String readAndProcessData(DataInputStream dataInputStream, int responseLength, BiFunction<ByteBuffer, String, String> extractUtxos) throws Exception {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] tmp = new byte[8192];
+
+        int nRead = 0;
+        while (buffer.size() < responseLength) {
+            if (isStopped.get()) {
+                throw new Exception("Downloading stopped by user");
+            }
+            nRead = dataInputStream.read(tmp, 0, Math.min(tmp.length, responseLength - buffer.size()));
+            if (nRead == -1) {
+                throw new Exception("Unexpected end of stream");
+            }
+            buffer.write(tmp, 0, nRead);
         }
 
         // Check for cancellation after download is complete
         if (isStopped.get()) {
-            promise.reject("Err", new Exception("Processing stopped"));
-            return null;
+            throw new Exception("Processing stopped by user");
         }
 
-        ByteBuffer responseBuffer = ByteBuffer.allocateDirect(responseLength);
-        responseBuffer.put(bytes, 0, responseLength);
-        return responseBuffer;
+        ByteBuffer responseBuffer = null;
+        try {
+            responseBuffer = ByteBuffer.allocateDirect(responseLength);
+            responseBuffer.put(buffer.toByteArray(), 0, responseLength);
+
+            String out = extractUtxos.apply(responseBuffer, jsonParams);
+            if (out == null) {
+                throw new Exception("Internal error: Memory allocation failed");
+            }
+
+            if (isStopped.get()) {
+                throw new Exception("Operations are stopped");
+            }
+
+            return out;
+        } finally {
+            if (responseBuffer != null) {
+                responseBuffer.clear();
+            }
+        }
     }
 };
