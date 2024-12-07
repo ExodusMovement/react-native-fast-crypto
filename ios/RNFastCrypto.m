@@ -119,7 +119,8 @@ static NSDictionary *_qosMapping;
 
          NSURLSessionDataTask *task = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
             if (error) {
-                resolve(@"{\"err_msg\":\"Network request failed\"}");
+                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"Network request failed: %@\"}", error.localizedDescription];
+                resolve(errorJSON);
                 return;
             }
 
@@ -185,7 +186,8 @@ static NSDictionary *_qosMapping;
         NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
         NSURLSessionDataTask *downloadTask = [session dataTaskWithRequest:urlRequest completionHandler: ^(NSData *data, NSURLResponse *response, NSError *error) {
             if (error) {
-                resolve(@"{\"err_msg\":\"[Clarity] Network request failed\"}");
+                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] Network request failed: %@\"}", error.localizedDescription];
+                resolve(errorJSON);
                 return;
             }
 
