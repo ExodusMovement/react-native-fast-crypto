@@ -82,22 +82,6 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
             result = serial_bridge::is_subaddress(strParams);
         } else if (method.compare("is_integrated_address") == 0) {
             result = serial_bridge::is_integrated_address(strParams);
-        } else if (method.compare("new_integrated_address") == 0) {
-            result = serial_bridge::new_integrated_address(strParams);
-        } else if (method.compare("new_payment_id") == 0) {
-            result = serial_bridge::new_payment_id(strParams);
-        } else if (method.compare("newly_created_wallet") == 0) {
-            result = serial_bridge::newly_created_wallet(strParams);
-        } else if (method.compare("are_equal_mnemonics") == 0) {
-            result = serial_bridge::are_equal_mnemonics(strParams);
-        } else if (method.compare("address_and_keys_from_seed") == 0) {
-            result = serial_bridge::address_and_keys_from_seed(strParams);
-        } else if (method.compare("mnemonic_from_seed") == 0) {
-            result = serial_bridge::mnemonic_from_seed(strParams);
-        } else if (method.compare("seed_and_keys_from_mnemonic") == 0) {
-            result = serial_bridge::seed_and_keys_from_mnemonic(strParams);
-        } else if (method.compare("validate_components_for_login") == 0) {
-            result = serial_bridge::validate_components_for_login(strParams);
         } else if (method.compare("estimated_tx_network_fee") == 0) {
             result = serial_bridge::estimated_tx_network_fee(strParams);
         } else if (method.compare("generate_key_image") == 0) {
