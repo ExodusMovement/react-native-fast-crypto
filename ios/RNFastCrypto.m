@@ -193,8 +193,15 @@ static NSDictionary *_qosMapping;
 
             NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
             if (httpResponse.statusCode != 200) {
-                NSString *errorMsg = [NSString stringWithFormat:@"HTTP Error: %ld", (long)httpResponse.statusCode];
-                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] %@\"}", errorMsg];
+                NSString *errorMsg = @"Unknown error";
+                if (data != nil) {
+                    NSDictionary *errorResponse = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:nil];
+                    if (errorResponse && [errorResponse objectForKey:@"message"]) {
+                        errorMsg = errorResponse[@"message"];
+                    }
+                }
+
+                NSString *errorJSON = [NSString stringWithFormat:@"{\"err_msg\":\"[Clarity] HTTP Error %ld: %@\"}", (long)httpResponse.statusCode, errorMsg];
                 resolve(errorJSON);
                 return;
             }
