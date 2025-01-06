@@ -1,31 +1,32 @@
 package co.airbitz.fastcrypto;
 
-import android.os.Build;
+import android.os.AsyncTask;
 import android.util.Log;
 
-//import com.facebook.react.BuildConfig;
 import com.facebook.react.bridge.Promise;
 
 import org.json.JSONObject;
 
-import java.io.DataInputStream;
-import java.io.OutputStream;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.io.IOException;
-import java.util.function.BiFunction;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 
 public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
     static {
 
-        //this loads the library when the class is loaded
+        // this loads the library when the class is loaded
         System.loadLibrary("nativecrypto");
-        System.loadLibrary("crypto_bridge"); //this loads the library when the class is loaded
+        System.loadLibrary("crypto_bridge"); // this loads the library when the class is loaded
     }
 
     private final String method;
@@ -34,7 +35,8 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     private final Promise promise;
     private final AtomicBoolean isStopped;
 
-    public MoneroAsyncTask(String method, String jsonParams, String userAgent, AtomicBoolean isStopped, Promise promise) {
+    public MoneroAsyncTask(String method, String jsonParams, String userAgent, AtomicBoolean isStopped,
+            Promise promise) {
         this.method = method;
         this.jsonParams = jsonParams;
         this.userAgent = userAgent;
@@ -43,9 +45,13 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
     }
 
     public native String moneroCoreJNI(String method, String jsonParams);
+
     public native int moneroCoreCreateRequest(ByteBuffer requestBuffer, int height);
+
     public native String extractUtxosFromBlocksResponse(ByteBuffer buffer, String jsonParams);
+
     public native String extractUtxosFromClarityBlocksResponse(ByteBuffer buffer, String jsonParams);
+
     public native String getTransactionPoolHashes(ByteBuffer buffer);
 
     @Override
@@ -80,7 +86,8 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 String contentLengthStr = connection.getHeaderField("Content-Length");
                 int responseLength = validateContentLengthHeader(contentLengthStr);
                 try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
-                    String out = readAndProcessData(dataInputStream, responseLength, this::extractUtxosFromBlocksResponse);
+                    String out = readAndProcessBinaryData(dataInputStream, responseLength,
+                            this::extractUtxosFromBlocksResponse);
                     promise.resolve(out);
                 }
             } catch (Exception e) {
@@ -94,9 +101,12 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         } else if (method.equals("download_from_clarity_and_process")) {
             HttpURLConnection connection = null;
             try {
+                // Parse the JSON parameters
                 JSONObject params = new JSONObject(jsonParams);
                 String addr = params.getString("url");
                 URL url = new URL(addr);
+
+                // Set up the HTTP connection
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setRequestProperty("User-Agent", userAgent);
@@ -105,14 +115,33 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
 
                 connection.connect();
 
-                String contentLengthStr = connection.getHeaderField("Content-Length");
-                int responseLength = validateContentLengthHeader(contentLengthStr);
-                try (DataInputStream dataInputStream = new DataInputStream(connection.getInputStream())) {
-                    String out = readAndProcessData(dataInputStream, responseLength, this::extractUtxosFromClarityBlocksResponse);
-                    promise.resolve(out);
+                // Check the response code
+                int responseCode = connection.getResponseCode();
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    // Read the error stream if available
+                    String errorMessage = readErrorStreamAsString(connection);
+                    String detailedError = String.format(
+                            "{\"err_msg\":\"[Clarity] HTTP Error %d: %s\"}",
+                            responseCode,
+                            errorMessage.isEmpty() ? "Unknown error" : errorMessage);
+                    promise.resolve(detailedError);
+                    return null;
+                }
+
+                try (InputStream inputStream = new BufferedInputStream(connection.getInputStream(), 8192)) {
+                    String result = readAndProcessJsonData(inputStream, this::extractUtxosFromClarityBlocksResponse);
+
+                    if (result == null) {
+                        promise.resolve("{\"err_msg\":\"Internal error: Processing failed\"}");
+                    } else {
+                        promise.resolve(result);
+                    }
                 }
             } catch (Exception e) {
-                promise.reject("Err", e);
+                String detailedError = String.format(
+                        "{\"err_msg\":\"Exception occurred: %s\"}",
+                        e.getMessage() != null ? e.getMessage() : "Unknown exception");
+                promise.resolve(detailedError);
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -165,7 +194,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         if (contentLengthStr == null) {
             throw new Exception("Missing Content-Length header");
         }
-    
+
         try {
             int contentLength = Integer.parseInt(contentLengthStr);
             if (contentLength < 0) {
@@ -181,7 +210,8 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         }
     }
 
-    private String readAndProcessData(DataInputStream dataInputStream, int responseLength, BiFunction<ByteBuffer, String, String> extractUtxos) throws Exception {
+    private String readAndProcessBinaryData(DataInputStream dataInputStream, int responseLength,
+            BiFunction<ByteBuffer, String, String> extractUtxos) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         byte[] tmp = new byte[8192];
 
@@ -222,5 +252,58 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 responseBuffer.clear();
             }
         }
+    }
+
+    private String readAndProcessJsonData(InputStream inputStream, BiFunction<ByteBuffer, String, String> extractUtxos)
+            throws Exception {
+        try {
+            byte[] jsonBytes = readInputStreamAsBytes(inputStream);
+
+            // Convert JSON string to ByteBuffer
+            ByteBuffer responseBuffer = ByteBuffer.allocateDirect(jsonBytes.length);
+            responseBuffer.put(jsonBytes);
+            responseBuffer.flip(); // Prepare the buffer for reading
+
+            // Process the JSON data
+            String out = extractUtxos.apply(responseBuffer, jsonParams);
+            if (out == null) {
+                throw new Exception("Internal error: Memory allocation failed");
+            }
+
+            return out;
+        } catch (IOException e) {
+            throw new Exception("Error reading JSON data: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Reads an InputStream fully and converts it to a byte array.
+     */
+    private byte[] readInputStreamAsBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(8192);
+        byte[] buffer = new byte[8192]; // 8 KB read buffer
+        int bytesRead;
+
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            if (isStopped.get()) {
+                throw new IOException("Downloading stopped by user");
+            }
+            byteArrayOutputStream.write(buffer, 0, bytesRead);
+        }
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    /**
+     * Reads the error stream from the HTTP connection and converts it to a String.
+     */
+    private String readErrorStreamAsString(HttpURLConnection connection) {
+        try (InputStream errorStream = connection.getErrorStream()) {
+            if (errorStream != null) {
+                return new String(readInputStreamAsBytes(errorStream), "UTF-8");
+            }
+        } catch (IOException e) {
+            return "Failed to read error stream";
+        }
+        return "";
     }
 };
