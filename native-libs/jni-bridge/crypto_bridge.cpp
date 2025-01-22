@@ -38,10 +38,18 @@ extern "C" {
 
 JNIEXPORT jint JNICALL
 Java_co_airbitz_fastcrypto_MoneroAsyncTask_moneroCoreCreateRequest(JNIEnv *env, jobject thiz, jobject buf, jint height) {
+    const size_t MAX_BUFFER_SIZE = 1000;
+
     size_t length = 0;
     const char *m_body = create_blocks_request(height, &length);
 
     char *data = (char *) env->GetDirectBufferAddress(buf);
+    if (data == nullptr) {
+        return 0;
+    }
+    
+    length = length > MAX_BUFFER_SIZE ? MAX_BUFFER_SIZE : length;
+    
     memcpy(data, m_body, length);
 
     return length;

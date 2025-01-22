@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
 public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
+    final long MAX_BYTES = 100L * 1024L * 1024L; // 100 MB
 
     static {
 
@@ -75,8 +76,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 try (OutputStream outputStream = connection.getOutputStream()) {
                     for (int i = 0; i < requestLength; i++) {
                         if (isStopped.get()) {
-                            promise.reject("Err", new Exception("Operations are stopped"));
-                            return null;
+                            throw new Exception("Operations are stopped");
                         }
                         outputStream.write(requestBuffer.get(i));
                     }
@@ -91,7 +91,10 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     promise.resolve(out);
                 }
             } catch (Exception e) {
-                promise.reject("Err", e);
+                String detailedError = String.format(
+                        "{\"err_msg\":\"Exception occurred: %s\"}",
+                        e.getMessage() != null ? e.getMessage() : "Unknown exception");
+                promise.resolve(detailedError);
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -132,7 +135,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                     String result = readAndProcessJsonData(inputStream, this::extractUtxosFromClarityBlocksResponse);
 
                     if (result == null) {
-                        promise.resolve("{\"err_msg\":\"Internal error: Processing failed\"}");
+                        throw new Exception("Processing failed");
                     } else {
                         promise.resolve(result);
                     }
@@ -200,8 +203,7 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
             if (contentLength < 0) {
                 throw new Exception("Invalid Content-Length header");
             }
-            int maxContentLength = 100 * 1024 * 1024; // 100 MB
-            if (contentLength > maxContentLength) {
+            if (contentLength > MAX_BYTES) {
                 throw new Exception("Content-Length exceeds allowed maximum of 100 MB");
             }
             return contentLength;
@@ -283,11 +285,17 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(8192);
         byte[] buffer = new byte[8192]; // 8 KB read buffer
         int bytesRead;
+        long totalBytesRead = 0;
 
         while ((bytesRead = inputStream.read(buffer)) != -1) {
             if (isStopped.get()) {
                 throw new IOException("Downloading stopped by user");
             }
+            totalBytesRead += bytesRead;
+            if (totalBytesRead > MAX_BYTES) {
+                throw new IOException("Input stream exceeded maximum allowed size of 100 MB");
+            }
+            
             byteArrayOutputStream.write(buffer, 0, bytesRead);
         }
         return byteArrayOutputStream.toByteArray();
