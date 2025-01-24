@@ -65,6 +65,17 @@ public class MoneroAsyncTask extends android.os.AsyncTask<Void, Void, Void> {
                 int startHeight = params.getInt("start_height");
                 ByteBuffer requestBuffer = ByteBuffer.allocateDirect(1000);
                 int requestLength = moneroCoreCreateRequest(requestBuffer, startHeight);
+                
+                if (requestLength == -1) {
+                    throw new Exception("Invalid ByteBuffer passed to native method.");
+                } else if (requestLength == -2) {
+                    throw new Exception("Failed to get ByteBuffer capacity.");
+                } else if (requestLength == -3) {
+                    throw new Exception("Failed to create blocks request.");
+                } else if (requestLength == -4) {
+                    throw new Exception("Buffer capacity is too small for the generated request.");
+                }
+            
                 URL url = new URL(addr);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");

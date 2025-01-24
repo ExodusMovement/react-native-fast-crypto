@@ -38,18 +38,38 @@ extern "C" {
 
 JNIEXPORT jint JNICALL
 Java_co_airbitz_fastcrypto_MoneroAsyncTask_moneroCoreCreateRequest(JNIEnv *env, jobject thiz, jobject buf, jint height) {
-    const size_t MAX_BUFFER_SIZE = 1000;
+    char *data = (char *) env->GetDirectBufferAddress(buf);
+    if (data == nullptr) {
+        // Return error code for invalid buffer
+        return -1;
+    }
+
+    jlong capacity = env->GetDirectBufferCapacity(buf);
+    if (capacity < 0) {
+        // If 'buf' is not a direct buffer, capacity could be -1;
+        // Not expected here since data != nullptr, but just in case
+        // Return error code for invalid capacity
+        return -2;
+    }
+
+    // Safely clamp 'capacity' to SIZE_MAX to avoid overflow in case jlong > size_t
+    size_t max_length = (capacity > (jlong) SIZE_MAX)
+        ? SIZE_MAX
+        : (size_t) capacity;
 
     size_t length = 0;
     const char *m_body = create_blocks_request(height, &length);
-
-    char *data = (char *) env->GetDirectBufferAddress(buf);
-    if (data == nullptr) {
-        return 0;
+    if (m_body == nullptr) {
+        // Return error code for request creation failure
+        return -3;
     }
-    
-    length = length > MAX_BUFFER_SIZE ? MAX_BUFFER_SIZE : length;
-    
+
+
+    if (length > max_length) {
+        // Return error code for insufficient buffer capacity
+        return -4;
+    }
+       
     memcpy(data, m_body, length);
 
     return length;
