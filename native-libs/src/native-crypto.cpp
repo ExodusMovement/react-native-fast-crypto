@@ -57,6 +57,11 @@ void get_transaction_pool_hashes(const char *buffer, size_t length, char **pszRe
 
     int size = result.length() + 1;
     *pszResult = (char *) malloc(sizeof(char) * size);
+    if (*pszResult == nullptr) {
+        // Memory allocation failed
+        return;
+    }
+    
     memcpy(*pszResult, result.c_str(), result.length() + 1);
 }
 
@@ -114,6 +119,11 @@ void fast_crypto_monero_core(const char *szMethod, const char *szJsonParams, cha
     }
     int size = result.length() + 1;
     *pszResult = (char *) malloc(sizeof(char) * size);
+    if (*pszResult == nullptr) {
+        // Memory allocation failed
+        return;
+    }
+
     memcpy(*pszResult, result.c_str(), result.length() + 1);
 }
 
