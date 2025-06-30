@@ -17,6 +17,14 @@ const char *create_blocks_request(int height, size_t *length) {
     return serial_bridge::create_blocks_request(height, length);
 }
 
+const char *decompress(const char *buffer, size_t length) {
+    return serial_bridge::decompress(buffer, length);
+}
+
+bool is_gzip_compressed(const char *buffer, size_t length) {
+    return serial_bridge::is_gzip_compressed(buffer, length);
+}
+
 void extract_utxos_from_blocks_response(const char *buffer, size_t length, const char *szJsonParams, char **pszResult) {
     std::string strParams = szJsonParams;
     std::string result = serial_bridge::extract_data_from_blocks_response_str(buffer, length, strParams);

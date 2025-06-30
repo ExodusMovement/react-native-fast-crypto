@@ -45,6 +45,7 @@ extern "C" {
 #endif
 
 const char *create_blocks_request(int height, size_t *length);
+const char * decompress(const char *buffer, size_t length);
 void extract_utxos_from_blocks_response(const char *buffer, size_t length, const char *szJsonParams, char **pszResult);
 void extract_utxos_from_clarity_blocks_response(const char *buffer, size_t length, const char *szJsonParams, char **pszResult);
 void get_transaction_pool_hashes(const char *buffer, size_t length, char **pszResult);

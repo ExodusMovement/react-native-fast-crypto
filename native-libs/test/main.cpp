@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <chrono>
 #include <serial_bridge_index.hpp>
 #include <storages/portable_storage_template_helper.h>
 #include <cryptonote_basic/cryptonote_format_utils.h>
@@ -48,26 +49,47 @@ void test_decode() {
     delete[] input;
 }
 
-void test_decompress() {
-    std::ifstream file("test/input/blocks.json.gzip", std::ios::binary | std::ios::ate);
+void test_decompress(const std::string &filePath) {
+    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
     if (!file) {
-        throw std::runtime_error("Failed to open file");
+        throw std::runtime_error("Failed to open file: " + filePath);
     }
 
-    file.seekg(0, std::ios::end);
+    // Get file size
     size_t fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    // Read the file into a vector<char>
-    char *buffer = new char[fileSize];
-    if (!file.read(buffer, fileSize)) {
-        throw std::runtime_error("Failed to read file");
+    // Read file into a buffer
+    std::vector<char> buffer(fileSize);
+    if (!file.read(buffer.data(), fileSize)) {
+        throw std::runtime_error("Failed to read file: " + filePath);
     }
 
-    size_t length = 0;
-    std::string decompressedData = serial_bridge::decompress(buffer, fileSize);
+    // Check if the file is Gzip compressed
+    bool isGzip = serial_bridge::is_gzip_compressed(buffer.data(), fileSize);
+    std::cout << "File: " << filePath << " | Is Gzip Compressed: " << (isGzip ? "Yes" : "No") << '\n';
 
-    delete[] buffer;
+    // Process the content based on type
+    std::string jsonData;
+    if (isGzip) {
+        try {
+            jsonData = serial_bridge::decompress(buffer.data(), fileSize);
+        } catch (const std::exception &e) {
+            std::cerr << "Decompression failed for " << filePath << ": " << e.what() << '\n';
+            return;
+        }
+        std::cout << "Decompressed JSON Length: " << jsonData.size() << '\n';
+    } else {
+        jsonData.assign(buffer.begin(), buffer.end());
+        std::cout << "Plain JSON Length: " << jsonData.size() << '\n';
+    }
+
+    // Validate JSON format (basic check)
+    assert(!jsonData.empty() && "JSON data should not be empty!");
+    assert(jsonData.front() == '{' || jsonData.front() == '[' && "JSON must start with { or [");
+
+    // Print a small portion of the JSON for validation
+    std::cout << "JSON Preview: " << jsonData.substr(0, 200) << "...\n\n";
 }
 
 void test_decode_with_clarity() {
@@ -105,33 +127,41 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 }
 
 bool downloadFile(const std::string& url, std::vector<char>& buffer) {
-    CURL *curl;
-    CURLcode res;
-    curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        return (res == CURLE_OK);
+    CURL *curl = curl_easy_init();
+    if (!curl) {
+        std::cerr << "Failed to initialize CURL\n";
+        return false;
     }
-    curl_easy_cleanup(curl);  // Clean up even if curl_easy_init fails
-    return false;
+
+    CURLcode res;
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+
+    res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        std::cerr << "CURL error: " << curl_easy_strerror(res) << '\n';
+        return false;
+    }
+
+    return true;
 }
 
-void test_full_flow_with_clarity() {
-    std::string url = "https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/3148308.json.gzip"; 
+// Generic function to test JSON/Gzip processing
+void test_full_flow_with_url_clarity(const std::string& url) {
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::vector<char> buffer;
 
-    std::cout << "Start download blocks file" << '\n';
-    downloadFile(url, buffer);
+    std::cout << "Start downloading file from: " << url << '\n';
     if (!downloadFile(url, buffer)) {
-        std::cerr << "Failed to download blocks file\n";
+        std::cerr << "Failed to download file\n";
         return;
     }
-    std::cout << "Done download file" << '\n';
+    std::cout << "Download complete. File size: " << buffer.size() << " bytes\n";
 
+    // Read input parameters from a file
     std::ifstream paramsFile("test/input/input.json");
     if (!paramsFile) {
         std::cerr << "Failed to open parameter file\n";
@@ -142,17 +172,30 @@ void test_full_flow_with_clarity() {
     paramsStream << paramsFile.rdbuf();
     std::string params = paramsStream.str();
 
+    // Pass the downloaded buffer directly to the function
     auto resp = serial_bridge::extract_data_from_clarity_blocks_response_str(buffer.data(), buffer.size(), params);
-    std::cout << resp << '\n';
-    return;
+
+    std::cout << "Response: " << resp << '\n';
+
+    auto end_time = std::chrono::high_resolution_clock::now(); // End timer
+    std::chrono::duration<double> duration = end_time - start_time;
+    std::cout << "Execution Time: " << duration.count() << " seconds\n";
 }
+
 
 int main() {
     test_encode();
     test_decode();
-    test_decompress();
+
+    std::cout << "Testing Gzip JSON File...\n";
+    test_decompress("test/input/blocks.json.gzip");
+
+    std::cout << "\nTesting Plain JSON File...\n";
+    test_decompress("test/input/blocks.json");
+
     // test_decode_with_clarity();
-    test_full_flow_with_clarity();
+    test_full_flow_with_url_clarity("https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/3148308.json.gzip");
+    test_full_flow_with_url_clarity("https://xmr-proxy-d.a.exodus.io/v1/monero/get_blocks_file/3148308.json");
 
     return 0;
 }
